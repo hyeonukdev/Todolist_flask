@@ -3,11 +3,11 @@
 - 게시판
     1. 게시글 작성
     2. 게시글 수정
-    3. 게시글 삭
+    3. 게시글 삭제
 - 회원
     1. 회원 가입
     2. 회원 수정
-    3. 회원 탈
+    3. 회원 탈퇴
 
 ### Database 
 - Board
@@ -23,7 +23,7 @@
     1. id
     2. pw
     3. username
-    4. Recent login record퇴
+    4. Recent login record
     
 ### Restrictions
 - Flask blueprint method를 사용해서 endpoint 구분하기
