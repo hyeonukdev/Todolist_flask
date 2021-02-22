@@ -27,7 +27,7 @@
     
 ### Restrictions
 - Flask blueprint method를 사용해서 endpoint 구분하기
-- SSR 서버사이드렌더링 사
+- SSR 서버사이드렌더링 사용
 - ORM 사용 X
 - Login
     - flask beaker 사용
