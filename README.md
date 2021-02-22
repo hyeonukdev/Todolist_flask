@@ -1,6 +1,4 @@
-# Todolist_flask
----
-##Todo List
+# Todo List
 ### Function
 - 게시판
     1. 게시글 작성
@@ -29,7 +27,7 @@
     
 ### Restrictions
 - Flask blueprint method를 사용해서 endpoint 구분하기
-- SSR 서버사이드렌더링 사용
+- SSR 서버사이드렌더링 사
 - ORM 사용 X
 - Login
     - flask beaker 사용
@@ -50,9 +48,9 @@
     3. Access information
 ---
 ## Environment 
-Framework : Flask
-Database : MySQL
-Server : nginx
+- Framework : Flask
+- Database : MySQL
+- Server : nginx
 ---
 ## 작성자 : 강현욱
 ### 작성일 : 2021.02.22.
