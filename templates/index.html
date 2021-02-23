@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>TODOLIST</title>
+	</head>
+    <body>
+					{% if username %}
+					Welcome <strong>{{username}}.</strong>
+					<p></p>
+					{% endif %}
+					TODOLIST
+					<p></p>
+					{% if username %}
+					<a href="/post">GET START</a> <font color="white" size=6>&middot;&nbsp;</font>
+					<a href="/logout">LOGOUT</a>
+					{% else %}   
+					<a href="/login">SIGN IN&nbsp;</a>
+					<a href="/regist">SIGN UP</a>
+					{% endif %}
+    </body>
+</html>

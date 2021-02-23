@@ -1,29 +1,28 @@
 # Todo List
 ### Function
 - 게시판
-    1. 게시글 작성
-    2. 게시글 수정
-    3. 게시글 삭제
+    [x]1. 게시글 작성
+    [x]2. 게시글 수정
+    [x]3. 게시글 삭제
 - 회원
-    1. 회원 가입
-    2. 회원 수정
-    3. 회원 탈퇴
+    [x]1. 회원 가입
+    [x]2. 회원 수정
+    []3. 회원 탈퇴
 
 ### Database 
 - Board
-    1. Num
-    2. Title
-    3. Content
-        - Count views
-    4. Author
-    5. created_date
-    6. Upload File
+    [x]1. id
+    [x]2. Title
+    [x]3. Content
+    [x]4. Author
+    [x]5. Count views
+    [x]6. created_date
+    []7. Upload File
         - Only Image
 - Login
-    1. id
-    2. pw
-    3. username
-    4. Recent login record
+    [x]1. id
+    [x]2. pw
+    []3. Recent login record
     
 ### Restrictions
 - Flask blueprint method를 사용해서 endpoint 구분하기
@@ -54,5 +53,5 @@
 ---
 ## 작성자 : 강현욱
 ### 작성일 : 2021.02.22.
-### 문서버전 : v0.0.2
+### 문서버전 : v0.0.3
 ---
