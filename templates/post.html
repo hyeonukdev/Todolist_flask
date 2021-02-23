@@ -21,16 +21,10 @@
 		<li class="nav-item active">
 			<a class="nav-link" href="/post">Post</a>
 		</li>
-		<li class="nav-item">
-			<a class="nav-link" href="#">Post2</a>
-		</li>
-		<li class="nav-item">
-			<a class="nav-link" href="#">Post3</a>
-		</li>
 		</ul>
 		<div>
 		{% if logininfo %}
-			{{logininfo}}
+			<font color="white"> 접속자 id : {{logininfo}}</font>
 		<button class="btn btn-dark btn-right" type="button" onclick="location.href='/logout'">로그아웃</button>
 		<button class="btn btn-dark btn-right" type="button" onclick="location.href='/logchange'">회원정보수정</button>
 		{% else %}
@@ -50,7 +44,7 @@
 			<th>제목</th>
 			<th>내용</th>
 			<th>작성자</th>
-			<th>날짜</th>
+			<th>게시날짜</th>
 			<th>조회수</th>
 		</tr>
 		</thead>

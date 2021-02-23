@@ -17,24 +17,31 @@ def connection():
 
 def create_tables():
     connection()
-    # SQL query 작성
-    sql = """CREATE TABLE board(
-             id  INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-             title VARCHAR(30) NOT NULL,
-             content VARCHAR(256) NOT NULL,
-             author VARCHAR(10) NOT NULL,
-             wdate VARCHAR(20) NOT NULL,
-             udate VARCHAR(20),
-             view INT DEFAULT 0,
-             upload VARCHAR(256)
-             );"""
+    # 게사판 만들기
+    # sql = """CREATE TABLE board(
+    #          id  INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    #          title VARCHAR(30) NOT NULL,
+    #          content VARCHAR(256) NOT NULL,
+    #          author VARCHAR(10) NOT NULL,
+    #          wdate VARCHAR(20) NOT NULL,
+    #          udate VARCHAR(20),
+    #          view INT DEFAULT 0,
+    #          upload VARCHAR(256)
+    #          );"""
 
-    # sql = """CREATE TABLE user(
-    #              id  INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    #              user_id VARCHAR(30) NOT NULL,
-    #              user_pw VARCHAR(20) NOT NULL,
-    #              user_name VARCHAR(10) NOT NULL
-    #              );"""
+    # 사용자 만들기
+    sql = """CREATE TABLE user(
+                 id  INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                 user_id VARCHAR(30) NOT NULL,
+                 user_pw VARCHAR(20) NOT NULL,
+                 user_name VARCHAR(10) NOT NULL,
+                 recent_login VARCHAR(20)
+                 );"""
+
+    sql = """
+        ALTER TABLE user
+            ADD recent_login VARCHAR(20);
+    """
 
     # SQL query 실행
     cursor.execute(sql)

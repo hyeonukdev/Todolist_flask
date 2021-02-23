@@ -1,9 +1,12 @@
+import os
 from flask import Flask, render_template, session, url_for, request, redirect
 from werkzeug.utils import secure_filename
 from flask import Blueprint
 import pymysql
 from datetime import datetime
 
+
+ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
 
 bp = Blueprint('main', __name__, url_prefix='/')
 
@@ -26,7 +29,6 @@ def index():
 
 
 @bp.route('/post')
-# board테이블의 게시판 제목리스트 역순으로 출력
 def post():
     if 'username' in session:
         username = session['username']
@@ -60,7 +62,7 @@ def content(id):
         conn = connectsql()
         cursor = conn.cursor(pymysql.cursors.DictCursor)
 
-        query = "SELECT id, title, content, author, wdate, upload, view FROM board WHERE id = %s"
+        query = "SELECT id, title, content, author, wdate, udate, upload, view FROM board WHERE id = %s"
         value = id
         cursor.execute(query, value)
         content = cursor.fetchall()
@@ -97,7 +99,6 @@ def edit(id):
     else:
         if 'username' in session:
             username = session['username']
-            userid = session['userid']
             conn = connectsql()
             cursor = conn.cursor()
             query = "SELECT author FROM board WHERE id = %s"
@@ -124,7 +125,6 @@ def edit(id):
 
 
 @bp.route('/post/delete/<id>')
-# 유지되고 있는 username 세션과 id 일치시 삭제확인 팝업 연결
 def delete(id):
     if 'username' in session:
         username = session['username']
@@ -157,6 +157,17 @@ def deletesuccess(id):
     conn.close()
 
     return redirect(url_for('main.post'))
+
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@bp.route('/fileUpload', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        f = request.files['upload']
+        f.save(secure_filename(f.filename))
 
 
 @bp.route('/write', methods=['GET', 'POST'])
@@ -245,8 +256,16 @@ def login():
         value = (user_id, user_pw)
         cursor.execute(query, value)
         data = cursor.fetchall()
+
+        recent_login = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+
+        query = "UPDATE user SET recent_login = %s WHERE user_id = %s"
+        value = (recent_login, user_id)
+        cursor.execute(query, value)
+        conn.commit()
         cursor.close()
         conn.close()
+
 
         # for row in data:
         #     data = row[0]
