@@ -14,10 +14,10 @@
     1. Num
     2. Title
     3. Content
-        - Count views
     4. Author
     5. created_date
-    6. Upload File
+    6. Count views
+    7. Upload File
         - Only Image
 - Login
     1. id
@@ -54,5 +54,5 @@
 ---
 ## 작성자 : 강현욱
 ### 작성일 : 2021.02.22.
-### 문서버전 : v0.0.2
+### 문서버전 : v0.0.4
 ---
