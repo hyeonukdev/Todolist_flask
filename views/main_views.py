@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, session, url_for, request, redirect
+from flask import Flask, flash, render_template, session, url_for, request, redirect
 from werkzeug.utils import secure_filename
 from flask import Blueprint
 import pymysql
@@ -166,8 +166,19 @@ def allowed_file(filename):
 @bp.route('/fileUpload', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
-        f = request.files['upload']
-        f.save(secure_filename(f.filename))
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            return redirect(url_for('uploaded_file',
+                                    filename=filename))
+    return
 
 
 @bp.route('/write', methods=['GET', 'POST'])
