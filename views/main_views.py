@@ -5,7 +5,8 @@ from flask import Blueprint
 import pymysql
 from datetime import datetime
 import app
-import images
+from util.utils import create_hashid, decode_hashid
+
 
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
 
@@ -70,8 +71,6 @@ def content(id):
         conn.commit()
         cursor.close()
         conn.close()
-
-        image_path = os.listdir(app.UPLOAD_DIR)
 
         conn = connectsql()
         cursor = conn.cursor(pymysql.cursors.DictCursor)
