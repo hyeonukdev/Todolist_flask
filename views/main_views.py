@@ -1,21 +1,23 @@
 import os
-from flask import Flask, flash, render_template, session, url_for, request, redirect
+from flask import Flask, flash, render_template, session, url_for, request, redirect, send_from_directory
 from werkzeug.utils import secure_filename
 from flask import Blueprint
 import pymysql
 from datetime import datetime
-
+import app
+import images
 
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
 
 bp = Blueprint('main', __name__, url_prefix='/')
 
+
 def connectsql():
-    conn = pymysql.connect(host='localhost', user = 'root', passwd = '0000', db = 'todolist', charset='utf8')
+    conn = pymysql.connect(host='localhost', user='root', passwd='0000', db='todolist', charset='utf8')
     return conn
 
 
-#----------
+# ----------
 @bp.route('/')
 # 세션유지를 통한 로그인 유무 확인
 def index():
@@ -61,15 +63,29 @@ def content(id):
 
         conn = connectsql()
         cursor = conn.cursor(pymysql.cursors.DictCursor)
-
-        query = "SELECT id, title, content, author, wdate, udate, upload, view FROM board WHERE id = %s"
+        query = "SELECT id, title, content, author, wdate, udate, view FROM board WHERE id = %s"
         value = id
         cursor.execute(query, value)
         content = cursor.fetchall()
         conn.commit()
         cursor.close()
         conn.close()
-        return render_template('content.html', data=content, username=username)
+
+        image_path = os.listdir(app.UPLOAD_DIR)
+
+        conn = connectsql()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        query = "SELECT upload FROM board WHERE id = %s"
+        value = id
+        cursor.execute(query, value)
+        img_name = cursor.fetchall()
+        img_name = img_name[0]['upload']
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return render_template('content.html', data=content, username=username, img_name=img_name)
     else:
         return render_template('Error.html')
 
@@ -84,7 +100,7 @@ def edit(id):
             editcontent = request.form['content']
 
             udate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
-            upload = request.form['upload']
+            upload = request.form['file']
 
             conn = connectsql()
             cursor = conn.cursor()
@@ -163,7 +179,8 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@bp.route('/fileUpload', methods=['GET', 'POST'])
+
+@bp.route('/imageUpload', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
         if 'file' not in request.files:
@@ -175,10 +192,19 @@ def upload_file():
             return redirect(request.url)
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            return redirect(url_for('uploaded_file',
+            # TODO : app.config['UPLOAD_FOLDER']
+            file.save(os.path.join(app.UPLOAD_DIR, filename))
+            return redirect(url_for('main.uploaded_image',
                                     filename=filename))
-    return
+        else:
+            return render_template('imageError.html')
+    return render_template('uploadFile.html')
+
+
+@bp.route('/display/<filename>')
+def uploaded_image(filename):
+    # TODO : app.config['UPLOAD_FOLDER']
+    return send_from_directory(app.UPLOAD_DIR, filename)
 
 
 @bp.route('/write', methods=['GET', 'POST'])
@@ -192,8 +218,12 @@ def write():
 
             wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
             view = 0
+            upload = None
 
-            upload = request.form['upload']
+            image_name = request.form['file']
+
+            if image_name != "":
+                upload = image_name
 
             conn = connectsql()
             cursor = conn.cursor()
@@ -248,6 +278,7 @@ def logchange():
     else:
         return render_template('logchange.html')
 
+
 @bp.route('/logout')
 def logout():
     session.pop('username', None)
@@ -276,7 +307,6 @@ def login():
         conn.commit()
         cursor.close()
         conn.close()
-
 
         # for row in data:
         #     data = row[0]

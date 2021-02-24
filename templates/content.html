@@ -9,6 +9,9 @@
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.6/umd/popper.min.js"></script>
 		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js"></script>
 		<title>post content page</title>
+		<style>
+		</style>
+
 	</head>
 	<body>
 		<br>
@@ -25,10 +28,18 @@
 						{{data_['content']}}
 					</div>
 					<div>
-						<div class="card-body">
-							Image :
-							{{data_['upload']}}
-						</div>
+						{% if img_name == None %}
+							<div class="card-body">
+								Image 없음
+							</div>
+						{% else %}
+							<div class="card-body">
+								Image
+								<p></p>
+									<img src={{url_for('main.uploaded_image',filename=img_name)}} width="100px" height="100px" alt="Upload Image">
+							</div>
+						{% endif %}
+
 					</div>
 					<div class="card-footer">
 						<a href="/post/edit/{{data_['id']}}" class="card-link">수정하기</a>

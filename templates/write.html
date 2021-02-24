@@ -6,8 +6,12 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css">
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+
+    <script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+
 </head>
 <body>
+
     <div class="container">
         <div class="header">
             <nav>
@@ -39,17 +43,17 @@
                     <!-- uplaod Image -->
                     <div class="form-group">
                         <label class="col-md-12" for="txtPost">Upload</label>
-                        <div class="col-md-12">
-                            <form action = "http://localhost:5000/fileUpload" method="POST" enctype="multipart/form-data">
-                                <input type="file" id="uploadImage" name="upload" accept="image/png, image/jpeg">
-                            </form>
-                        </div>
+                        <form id="FILE_FORM" method="POST" enctype="multipart/form-data" action="/imageUpload">
+                            <input type="file" id="file" name="file" accept="image/png, image/jpeg">
+                            <a class="ui-shadow ui-btn ui-corner-all" href="javascript:uploadFile();">이미지 올리기</a>
+                        </form>
                     </div>
+
                     <!-- Button -->
                     <div class="form-group">
                         <label class="col-md-12 control-label" for="singlebutton"></label>
                         <div class="col-md-12">
-                            <input id="singlebutton" name="singlebutton" class="btn btn-primary" type="submit" value="작성하기">
+                            <input id="singlebutton" name="singlebutton" class="btn btn-primary" type="submit" value="작성하기" >
                         </div>
                     </div>
                 </fieldset>
@@ -57,4 +61,32 @@
         </section>
     </div>
 </body>
+<script>
+    function uploadFile(){
+
+        var form = $('#FILE_FORM')[0];
+        var formData = new FormData(form);
+        formData.append("file", $("#file")[0].files[0]);
+
+        check_file = $("#file")[0].files[0].name;
+
+        if (String(check_file) == 'undefined')
+            alert('파일을 선택해주세요');
+        else
+            $.ajax({
+                url: '/imageUpload',
+                enctype: 'multipart/form-data',
+                processData: false,
+                contentType: false,
+                data: formData,
+                type: "POST",
+                success: function(result){
+                    alert("업로드 성공!!");
+                }
+        });
+    }
+
+</script>
+
+
 </html>
