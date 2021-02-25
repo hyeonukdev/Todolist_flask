@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UploadFile</title>
+</head>
+<body>
+    <form method=post enctype=multipart/form-data name="imageForm1">
+      업로드할 파일 : <input type="file" name="file" accept="image/png, image/jpeg" multiple><br>
+        <input type="submit" id="image_submit" value="Upload" style="display:none">
+    </form>
+    <div class="button" onclick="onclick=document.imageForm1.image_submit.click()">이미지 업로드</div>
+
+    <p></p>
+    test
+<div>
+    <input type="file" id="file" name="file" onchange="changeValue(this)"/>
+    <button type="button" id="btn-upload">Image</button>
+</div>
+
+</body>
+<script type="text/javascript">
+
+    $(function () {
+        $('#btn-upload').click(function (e) {
+            e.preventDefault();
+            $('#file').click();
+        });
+
+    });
+    function changeValue(obj){
+        alert(obj.value);
+    }
+</script>
+
+</html>

@@ -1,21 +1,26 @@
 import os
-from flask import Flask, render_template, session, url_for, request, redirect
+from flask import Flask, flash, render_template, session, url_for, request, redirect, send_from_directory, escape
 from werkzeug.utils import secure_filename
 from flask import Blueprint
 import pymysql
 from datetime import datetime
+import app
+
+
+from logs.detail import login_log, get_client_ip, detail_log
 
 
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
 
 bp = Blueprint('main', __name__, url_prefix='/')
 
+
 def connectsql():
-    conn = pymysql.connect(host='localhost', user = 'root', passwd = '0000', db = 'todolist', charset='utf8')
+    conn = pymysql.connect(host='localhost', user='root', passwd='0000', db='todolist', charset='utf8')
     return conn
 
 
-#----------
+# ----------
 @bp.route('/')
 # 세션유지를 통한 로그인 유무 확인
 def index():
@@ -61,15 +66,34 @@ def content(id):
 
         conn = connectsql()
         cursor = conn.cursor(pymysql.cursors.DictCursor)
-
-        query = "SELECT id, title, content, author, wdate, udate, upload, view FROM board WHERE id = %s"
+        query = "SELECT id, title, content, author, wdate, udate, view FROM board WHERE id = %s"
         value = id
         cursor.execute(query, value)
         content = cursor.fetchall()
         conn.commit()
         cursor.close()
         conn.close()
-        return render_template('content.html', data=content, username=username)
+
+        conn = connectsql()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        query = "SELECT upload FROM board WHERE id = %s"
+        value = id
+        cursor.execute(query, value)
+        img_name = cursor.fetchall()
+        img_name = img_name[0]['upload']
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        url = request.url
+        ip = get_client_ip(request)
+        wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+        # LOG
+        res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, content, url)
+        detail_log(res)
+
+        return render_template('content.html', data=content, username=username, img_name=img_name)
     else:
         return render_template('Error.html')
 
@@ -84,7 +108,7 @@ def edit(id):
             editcontent = request.form['content']
 
             udate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
-            upload = request.form['upload']
+            upload = request.form['file']
 
             conn = connectsql()
             cursor = conn.cursor()
@@ -94,6 +118,14 @@ def edit(id):
             conn.commit()
             cursor.close()
             conn.close()
+
+            url = request.url
+            ip = get_client_ip(request)
+            wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+            # LOG
+            res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, value,
+                                                                                         url)
+            detail_log(res)
 
             return render_template('editSuccess.html')
     else:
@@ -137,6 +169,14 @@ def delete(id):
         cursor.close()
         conn.close()
 
+        url = request.url
+        ip = get_client_ip(request)
+        content = "DELETE id-" + value + " in board"
+        wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+        # LOG
+        res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, content, url)
+        detail_log(res)
+
         if username in data:
             return render_template('delete.html', id=id)
         else:
@@ -163,11 +203,41 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@bp.route('/fileUpload', methods=['GET', 'POST'])
+
+@bp.route('/imageUpload', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
-        f = request.files['upload']
-        f.save(secure_filename(f.filename))
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            # TODO : app.config['UPLOAD_FOLDER']
+            file.save(os.path.join(app.UPLOAD_DIR, filename))
+
+            url = request.url
+            ip = get_client_ip(request)
+            wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+            # LOG
+            res = "TIME : {0}, IP : {1}, filename : {2}, URL : {3}".format(wdate, ip, filename,
+                                                                                         url)
+            detail_log(res)
+
+            return redirect(url_for('main.uploaded_image',
+                                    filename=filename))
+        else:
+            return render_template('imageError.html')
+    return render_template('uploadFile.html')
+
+
+@bp.route('/display/<filename>')
+def uploaded_image(filename):
+    # TODO : app.config['UPLOAD_FOLDER']
+    return send_from_directory(app.UPLOAD_DIR, filename)
 
 
 @bp.route('/write', methods=['GET', 'POST'])
@@ -181,17 +251,29 @@ def write():
 
             wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
             view = 0
+            upload = None
 
-            upload = request.form['upload']
+            image_name = request.form['file']
+
+            if image_name != "":
+                upload = image_name
 
             conn = connectsql()
             cursor = conn.cursor()
             query = "INSERT INTO board (title, content, author, wdate, view, upload) values (%s, %s, %s, %s, %s, %s)"
             value = (usertitle, usercontent, username, wdate, view, upload)
             cursor.execute(query, value)
+            data = cursor.fetchall()
             conn.commit()
             cursor.close()
             conn.close()
+
+            url = request.url
+            ip = get_client_ip(request)
+
+            #LOG
+            res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, value, url)
+            detail_log(res)
 
             return redirect(url_for('main.post'))
         else:
@@ -199,6 +281,7 @@ def write():
     else:
         if 'username' in session:
             username = session['username']
+
             return render_template('write.html', logininfo=username)
         else:
             return render_template('Error.html')
@@ -237,9 +320,18 @@ def logchange():
     else:
         return render_template('logchange.html')
 
+
 @bp.route('/logout')
 def logout():
-    session.pop('username', None)
+    ip = get_client_ip(request)
+    url = request.url
+    user_id = '%s' % escape(session['username'])
+
+    wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+    content = "LOGOUT user_id " + user_id
+    # LOG
+    res = "TIME : {0}, IP : {1}, USER_ID : {2}, DATA : {3}, URL : {4}".format(wdate, ip, user_id, content, url)
+    login_log(res)
     return redirect(url_for('main.index'))
 
 
@@ -266,7 +358,6 @@ def login():
         cursor.close()
         conn.close()
 
-
         # for row in data:
         #     data = row[0]
 
@@ -281,7 +372,13 @@ def login():
             cursor.execute(query, value)
             data = cursor.fetchall()
             username = data[0][0]
-            # session['user_name'] = username
+
+            ip = get_client_ip(request)
+            url = request.url
+
+            #LOG
+            res="TIME : {0}, IP : {1}, USER_ID : {2}, URL : {3}".format(recent_login, ip, user_id, url)
+            login_log(res)
 
             return render_template('index.html', logininfo=logininfo, username=username)
         else:
@@ -312,8 +409,15 @@ def regist():
             cursor.execute(query, value)
             data = cursor.fetchall()
             conn.commit()
+
             return render_template('registSuccess.html')
         cursor.close()
         conn.close()
     else:
         return render_template('regist.html')
+
+
+@bp.route("/xss", methods=['GET'])
+def xss():
+    xss_stirng = "<script>alert('flask reflected xss run')</script>"
+    return render_template('xss.html', name = xss_stirng)
