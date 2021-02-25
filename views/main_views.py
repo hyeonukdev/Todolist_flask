@@ -1,11 +1,12 @@
 import os
-from flask import Flask, flash, render_template, session, url_for, request, redirect, send_from_directory
+from flask import Flask, flash, render_template, session, url_for, request, redirect, send_from_directory, escape
 from werkzeug.utils import secure_filename
 from flask import Blueprint
 import pymysql
 from datetime import datetime
 import app
-from util.utils import create_hashid, decode_hashid
+
+from logs.detail import login_log, get_client_ip, detail_log
 
 
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
@@ -84,6 +85,13 @@ def content(id):
         cursor.close()
         conn.close()
 
+        url = request.url
+        ip = get_client_ip(request)
+        wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+        # LOG
+        res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, content, url)
+        detail_log(res)
+
         return render_template('content.html', data=content, username=username, img_name=img_name)
     else:
         return render_template('Error.html')
@@ -109,6 +117,14 @@ def edit(id):
             conn.commit()
             cursor.close()
             conn.close()
+
+            url = request.url
+            ip = get_client_ip(request)
+            wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+            # LOG
+            res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, value,
+                                                                                         url)
+            detail_log(res)
 
             return render_template('editSuccess.html')
     else:
@@ -152,6 +168,14 @@ def delete(id):
         cursor.close()
         conn.close()
 
+        url = request.url
+        ip = get_client_ip(request)
+        content = "DELETE id-" + value + " in board"
+        wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+        # LOG
+        res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, content, url)
+        detail_log(res)
+
         if username in data:
             return render_template('delete.html', id=id)
         else:
@@ -193,6 +217,15 @@ def upload_file():
             filename = secure_filename(file.filename)
             # TODO : app.config['UPLOAD_FOLDER']
             file.save(os.path.join(app.UPLOAD_DIR, filename))
+
+            url = request.url
+            ip = get_client_ip(request)
+            wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+            # LOG
+            res = "TIME : {0}, IP : {1}, filename : {2}, URL : {3}".format(wdate, ip, filename,
+                                                                                         url)
+            detail_log(res)
+
             return redirect(url_for('main.uploaded_image',
                                     filename=filename))
         else:
@@ -229,9 +262,17 @@ def write():
             query = "INSERT INTO board (title, content, author, wdate, view, upload) values (%s, %s, %s, %s, %s, %s)"
             value = (usertitle, usercontent, username, wdate, view, upload)
             cursor.execute(query, value)
+            data = cursor.fetchall()
             conn.commit()
             cursor.close()
             conn.close()
+
+            url = request.url
+            ip = get_client_ip(request)
+
+            #LOG
+            res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, value, url)
+            detail_log(res)
 
             return redirect(url_for('main.post'))
         else:
@@ -239,6 +280,7 @@ def write():
     else:
         if 'username' in session:
             username = session['username']
+
             return render_template('write.html', logininfo=username)
         else:
             return render_template('Error.html')
@@ -280,7 +322,15 @@ def logchange():
 
 @bp.route('/logout')
 def logout():
-    session.pop('username', None)
+    ip = get_client_ip(request)
+    url = request.url
+    user_id = '%s' % escape(session['username'])
+
+    wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+    content = "LOGOUT user_id " + user_id
+    # LOG
+    res = "TIME : {0}, IP : {1}, USER_ID : {2}, DATA : {3}, URL : {4}".format(wdate, ip, user_id, content, url)
+    login_log(res)
     return redirect(url_for('main.index'))
 
 
@@ -321,7 +371,13 @@ def login():
             cursor.execute(query, value)
             data = cursor.fetchall()
             username = data[0][0]
-            # session['user_name'] = username
+
+            ip = get_client_ip(request)
+            url = request.url
+
+            #LOG
+            res="TIME : {0}, IP : {1}, USER_ID : {2}, URL : {3}".format(recent_login, ip, user_id, url)
+            login_log(res)
 
             return render_template('index.html', logininfo=logininfo, username=username)
         else:
@@ -352,8 +408,10 @@ def regist():
             cursor.execute(query, value)
             data = cursor.fetchall()
             conn.commit()
+
             return render_template('registSuccess.html')
         cursor.close()
         conn.close()
     else:
         return render_template('regist.html')
+
