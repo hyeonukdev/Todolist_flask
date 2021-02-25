@@ -6,6 +6,7 @@ import pymysql
 from datetime import datetime
 import app
 
+
 from logs.detail import login_log, get_client_ip, detail_log
 
 
@@ -415,3 +416,8 @@ def regist():
     else:
         return render_template('regist.html')
 
+
+@bp.route("/xss", methods=['GET'])
+def xss():
+    xss_stirng = "<script>alert('flask reflected xss run')</script>"
+    return render_template('xss.html', name = xss_stirng)
