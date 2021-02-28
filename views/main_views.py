@@ -421,10 +421,8 @@ def regist():
 
 @bp.route('/deleteUser')
 def deleteUser():
-    print("delete page-----")
     if 'username' in session:
         username = session['username']
-        print(username)
         conn = connectsql()
         cursor = conn.cursor()
         query = "DELETE FROM user WHERE user_id = %s"
