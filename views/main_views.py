@@ -39,10 +39,12 @@ def post():
         username = session['username']
     else:
         username = None
+
     conn = connectsql()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
-    query = "SELECT id, title, content, author, wdate, view FROM board ORDER BY id DESC"  # ORDER BY 컬럼명 DESC : 역순출력, ASC : 순차출력
-    cursor.execute(query)
+    query = "SELECT id, title, content, author, wdate, view FROM board WHERE author= %s ORDER BY id DESC"
+    value = username
+    cursor.execute(query, value)
     post_list = cursor.fetchall()
 
     cursor.close()
@@ -186,7 +188,7 @@ def delete(id):
 
 
 @bp.route('/post/delete/success/<id>')
-def deletesuccess(id):
+def delete_post_success(id):
     conn = connectsql()
     cursor = conn.cursor()
     query = "DELETE FROM board WHERE id = %s"
@@ -415,6 +417,23 @@ def regist():
         conn.close()
     else:
         return render_template('regist.html')
+
+
+@bp.route('/deleteUser')
+def deleteUser():
+    print("delete page-----")
+    if 'username' in session:
+        username = session['username']
+        print(username)
+        conn = connectsql()
+        cursor = conn.cursor()
+        query = "DELETE FROM user WHERE user_id = %s"
+        value = username
+        cursor.execute(query, value)
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return render_template('deleteSuccess.html')
 
 
 @bp.route("/xss", methods=['GET'])
