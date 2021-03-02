@@ -36,7 +36,7 @@
 							<div class="card-body">
 								Image
 								<p></p>
-									<img src={{url_for('main.uploaded_image',filename=img_name)}} width="100px" height="100px" alt="Upload Image">
+									<img src={{url_for('main.uploaded_image',filename=img_name)}} onError="this.src='http://127.0.0.1:9000/display/error_img.jpeg';" width="100px" height="100px">
 							</div>
 						{% endif %}
 
