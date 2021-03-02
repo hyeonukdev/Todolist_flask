@@ -1,21 +1,39 @@
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>TODOLIST</title>
+    	<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, maxinum-scale=1, user-scalable=no">
+
+    	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css">
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.6/umd/popper.min.js"></script>
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js"></script>
+   		<title>TODOLIST</title>
 	</head>
-    <body>
-					{% if username %}
-					Welcome <strong>{{username}}.</strong>
-					<p></p>
-					{% endif %}
-					TODOLIST
-					<p></p>
-					{% if username %}
-					<a href="/post">GET START</a> <font color="white" size=6>&middot;&nbsp;</font>
-					<a href="/logout">LOGOUT</a>
-					{% else %}   
-					<a href="/login">SIGN IN&nbsp;</a>
-					<a href="/regist">SIGN UP</a>
-					{% endif %}
-    </body>
+
+	<body>
+		<br><div class="container">
+		<div class="card align-middle" style="width:100%; border-radius:20px;">
+		<div class="card-title" style="margin-top:50px;">
+			<h2 class="card-title text-center" style="color:#113366;">TODOLIST</h2>
+		</div>
+		<div class="card-body">
+			{% if username %}
+				<h5 class="card-title text-center" style="color:#113366;">Welcome <strong>{{username}}.</strong></h5>
+				<p></p>
+				<a href="/post" class="btn btn-primary btn-block">시작하</a>
+				<a href="/logout">로그아웃</a>
+			{% else %}
+				<a href="/login" class="btn btn-primary btn-block">로그인</a>
+				<a href="/regist" class="btn btn-primary btn-block">회원가입</a>
+			{% endif %}
+
+
+
+		</div>
+		</div>
+  </body>
 </html>
