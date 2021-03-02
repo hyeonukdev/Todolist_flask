@@ -102,8 +102,7 @@ def content(id):
         url = request.url
         ip = get_client_ip(request)
         wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
-        if img_name == None:
-            img_name = "None"
+
         # LOG
         res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}, IMG : {5}".format(wdate, ip, username, content, url, img_name)
         detail_log(res)
