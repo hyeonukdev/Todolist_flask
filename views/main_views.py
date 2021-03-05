@@ -15,6 +15,7 @@ ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
 bp = Blueprint('main', __name__, url_prefix='/')
 
 
+
 def connectsql():
     conn = pymysql.connect(host='localhost', user='root', passwd='0000', db='todolist', charset='utf8')
     return conn
@@ -22,7 +23,6 @@ def connectsql():
 
 # ----------
 @bp.route('/')
-# 세션유지를 통한 로그인 유무 확인
 def index():
     if 'username' in session:
         username = session['username']
@@ -33,27 +33,38 @@ def index():
         return render_template('index.html', logininfo=username)
 
 
-@bp.route('/post')
+@bp.route('/post', methods=['GET'])
 def post():
     if 'username' in session:
         username = session['username']
     else:
         username = None
+
     conn = connectsql()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
-    query = "SELECT id, title, content, author, wdate, view FROM board ORDER BY id DESC"  # ORDER BY 컬럼명 DESC : 역순출력, ASC : 순차출력
-    cursor.execute(query)
+    query = "SELECT id, title, content, author, wdate, view FROM board WHERE author= %s ORDER BY id DESC"
+    value = username
+    cursor.execute(query, value)
     post_list = cursor.fetchall()
 
     cursor.close()
     conn.close()
 
+    url = request.url
+    ip = get_client_ip(request)
+    wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+    content = "post Page"
+    # LOG
+    res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, content, url)
+    detail_log(res)
+
     return render_template('post.html', postlist=post_list, logininfo=username)
 
 
-@bp.route('/post/content/<id>')
+@bp.route('/post/content/<id>', methods=['GET'])
 def content(id):
     if 'username' in session:
+        # 조회수 +=1
         username = session['username']
         conn = connectsql()
         cursor = conn.cursor()
@@ -64,6 +75,7 @@ def content(id):
         cursor.close()
         conn.close()
 
+        # post 정보
         conn = connectsql()
         cursor = conn.cursor(pymysql.cursors.DictCursor)
         query = "SELECT id, title, content, author, wdate, udate, view FROM board WHERE id = %s"
@@ -74,6 +86,7 @@ def content(id):
         cursor.close()
         conn.close()
 
+        # 이미지 정보
         conn = connectsql()
         cursor = conn.cursor(pymysql.cursors.DictCursor)
         query = "SELECT upload FROM board WHERE id = %s"
@@ -89,8 +102,9 @@ def content(id):
         url = request.url
         ip = get_client_ip(request)
         wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+
         # LOG
-        res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, content, url)
+        res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}, IMG : {5}".format(wdate, ip, username, content, url, img_name)
         detail_log(res)
 
         return render_template('content.html', data=content, username=username, img_name=img_name)
@@ -108,7 +122,17 @@ def edit(id):
             editcontent = request.form['content']
 
             udate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
-            upload = request.form['file']
+            image_name = request.form['file']
+
+            if image_name != "":
+                filename = image_name
+
+                count_id = check_post_id(id)
+                filename, file_ext = os.path.splitext(filename)
+
+                file_date = str(datetime.today().strftime("%Y%m%d"))
+                upload = filename + "_" + file_date + "_" + str(count_id) + file_ext
+
 
             conn = connectsql()
             cursor = conn.cursor()
@@ -186,7 +210,7 @@ def delete(id):
 
 
 @bp.route('/post/delete/success/<id>')
-def deletesuccess(id):
+def delete_post_success(id):
     conn = connectsql()
     cursor = conn.cursor()
     query = "DELETE FROM board WHERE id = %s"
@@ -196,6 +220,14 @@ def deletesuccess(id):
     cursor.close()
     conn.close()
 
+    url = request.url
+    ip = get_client_ip(request)
+    wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+    content = "Delete post id : " + value
+    # LOG
+    res = "TIME : {0}, IP : {1}, DATA : {2}, URL : {3}".format(wdate, ip, content, url)
+    detail_log(res)
+
     return redirect(url_for('main.post'))
 
 
@@ -204,8 +236,22 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def check_post_id(count_id):
+    conn = connectsql()
+    cursor = conn.cursor()
+    query = "SELECT id FROM board ORDER BY id DESC limit 1"
+    cursor.execute(query)
+    count_id = cursor.fetchall()
+    conn.commit()
+    cursor.close()
+    conn.close()
+    count_id = count_id[0][0]
+    return count_id
+
+
+# TODO : deleteImage
 @bp.route('/imageUpload', methods=['GET', 'POST'])
-def upload_file():
+def upload_file(count_id=None):
     if request.method == 'POST':
         if 'file' not in request.files:
             flash('No file part')
@@ -215,7 +261,16 @@ def upload_file():
             flash('No selected file')
             return redirect(request.url)
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
+            # filename = secure_filename(file.filename)
+            filename = file.filename
+
+            count_id = check_post_id(count_id)
+            filename, file_ext = os.path.splitext(filename)
+
+            file_date = str(datetime.today().strftime("%Y%m%d"))
+            filename = filename + "_" + file_date + "_" + str(count_id) + file_ext
+
+
             # TODO : app.config['UPLOAD_FOLDER']
             file.save(os.path.join(app.UPLOAD_DIR, filename))
 
@@ -241,7 +296,7 @@ def uploaded_image(filename):
 
 
 @bp.route('/write', methods=['GET', 'POST'])
-def write():
+def write(count_id=None):
     if request.method == 'POST':
         if 'username' in session:
             username = session['username']
@@ -256,7 +311,13 @@ def write():
             image_name = request.form['file']
 
             if image_name != "":
-                upload = image_name
+                filename = image_name
+
+                count_id = check_post_id(count_id)
+                filename, file_ext = os.path.splitext(filename)
+
+                file_date = str(datetime.today().strftime("%Y%m%d"))
+                upload = filename + "_" + file_date + "_" + str(count_id) + file_ext
 
             conn = connectsql()
             cursor = conn.cursor()
@@ -313,6 +374,16 @@ def logchange():
                 username = cursor.execute(query, value)
                 data = cursor.fetchall()
                 username = data[0][0]
+
+            #LOG
+            ip = get_client_ip(request)
+            url = request.url
+            user_id = '%s' % escape(session['username'])
+            wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+            content = "LOGCHANGE editname-" + editname + " editpw-" + editpw
+            # LOG
+            res = "TIME : {0}, IP : {1}, USER_ID : {2}, DATA : {3}, URL : {4}".format(wdate, ip, user_id, content, url)
+            login_log(res)
 
             return render_template('index.html', username=username)
         else:
@@ -409,15 +480,50 @@ def regist():
             cursor.execute(query, value)
             data = cursor.fetchall()
             conn.commit()
+            cursor.close()
+            conn.close()
+
+            wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+            ip = get_client_ip(request)
+            url = request.url
+            content = "REGISTER"
+
+            # LOG
+            res = "TIME : {0}, IP : {1}, USER_ID : {2}, CONTENT : {3} URL : {4}".format(wdate, ip, user_id, content,url)
+            login_log(res)
 
             return render_template('registSuccess.html')
-        cursor.close()
-        conn.close()
     else:
         return render_template('regist.html')
+
+
+@bp.route('/deleteUser')
+def deleteUser():
+    if 'username' in session:
+        username = session['username']
+        conn = connectsql()
+        cursor = conn.cursor()
+        query = "DELETE FROM user WHERE user_id = %s"
+        value = username
+        cursor.execute(query, value)
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+        ip = get_client_ip(request)
+        url = request.url
+        content = "DELETE USER"
+
+        # LOG
+        res = "TIME : {0}, IP : {1}, USER_ID : {2}, CONTENT : {3} URL : {4}".format(wdate, ip, username, content, url)
+        login_log(res)
+
+        return render_template('deleteSuccess.html')
 
 
 @bp.route("/xss", methods=['GET'])
 def xss():
     xss_stirng = "<script>alert('flask reflected xss run')</script>"
     return render_template('xss.html', name = xss_stirng)
+

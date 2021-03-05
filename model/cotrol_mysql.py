@@ -14,9 +14,13 @@ def connection():
     cursor = db.cursor()
     print("CONNECTED DATABASE")
 
+def connectsql():
+    conn = pymysql.connect(host='localhost',port=3306, user='root', passwd='0000', db='todolist', charset='utf8')
+    return conn
 
 def create_tables():
-    connection()
+    # connection()
+    global cursor
     # 게사판 만들기
     # sql = """CREATE TABLE board(
     #          id  INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -30,27 +34,30 @@ def create_tables():
     #          );"""
 
     # 사용자 만들기
-    sql = """CREATE TABLE user(
-                 id  INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                 user_id VARCHAR(30) NOT NULL,
-                 user_pw VARCHAR(20) NOT NULL,
-                 user_name VARCHAR(10) NOT NULL,
-                 recent_login VARCHAR(20)
-                 );"""
+    # sql = """CREATE TABLE user(
+    #              id  INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    #              user_id VARCHAR(30) NOT NULL,
+    #              user_pw VARCHAR(20) NOT NULL,
+    #              user_name VARCHAR(10) NOT NULL,
+    #              recent_login VARCHAR(20)
+    #              );"""
 
-    sql = """
-        ALTER TABLE user
-            ADD recent_login VARCHAR(20);
-    """
+    # 최근 로그인 쿼리
+    # sql = """
+    #     ALTER TABLE user
+    #         ADD recent_login VARCHAR(20);
+    # """
 
-    # SQL query 실행
-    cursor.execute(sql)
+    conn = connectsql()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    query = "ALTER TABLE board convert to charset utf8;"
+    # query = "ALTER  board MODIFY upload varchar(50);"
+    # query = "ALTER TABLE board MODIFY upload varchar(50);"
+    cursor.execute(query)
+    conn.commit()
+    cursor.close()
+    conn.close()
 
-    # SQL 반
-    db.commit()
-
-    # Database 닫기
-    db.close()
     return print("SUCCESS CREATE TABLE")
 
 
