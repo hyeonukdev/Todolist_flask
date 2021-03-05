@@ -15,6 +15,7 @@ ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
 bp = Blueprint('main', __name__, url_prefix='/')
 
 
+
 def connectsql():
     conn = pymysql.connect(host='localhost', user='root', passwd='0000', db='todolist', charset='utf8')
     return conn
@@ -22,7 +23,6 @@ def connectsql():
 
 # ----------
 @bp.route('/')
-# 세션유지를 통한 로그인 유무 확인
 def index():
     if 'username' in session:
         username = session['username']
@@ -122,7 +122,17 @@ def edit(id):
             editcontent = request.form['content']
 
             udate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
-            upload = request.form['file']
+            image_name = request.form['file']
+
+            if image_name != "":
+                filename = image_name
+
+                count_id = check_post_id(id)
+                filename, file_ext = os.path.splitext(filename)
+
+                file_date = str(datetime.today().strftime("%Y%m%d"))
+                upload = filename + "_" + file_date + "_" + str(count_id) + file_ext
+
 
             conn = connectsql()
             cursor = conn.cursor()
@@ -225,6 +235,7 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
 def check_post_id(count_id):
     conn = connectsql()
     cursor = conn.cursor()
@@ -250,10 +261,12 @@ def upload_file(count_id=None):
             flash('No selected file')
             return redirect(request.url)
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
+            # filename = secure_filename(file.filename)
+            filename = file.filename
 
             count_id = check_post_id(count_id)
             filename, file_ext = os.path.splitext(filename)
+
             file_date = str(datetime.today().strftime("%Y%m%d"))
             filename = filename + "_" + file_date + "_" + str(count_id) + file_ext
 
@@ -299,8 +312,10 @@ def write(count_id=None):
 
             if image_name != "":
                 filename = image_name
+
                 count_id = check_post_id(count_id)
                 filename, file_ext = os.path.splitext(filename)
+
                 file_date = str(datetime.today().strftime("%Y%m%d"))
                 upload = filename + "_" + file_date + "_" + str(count_id) + file_ext
 
@@ -511,3 +526,4 @@ def deleteUser():
 def xss():
     xss_stirng = "<script>alert('flask reflected xss run')</script>"
     return render_template('xss.html', name = xss_stirng)
+
