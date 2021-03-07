@@ -127,11 +127,11 @@ def edit(id):
             if image_name != "":
                 filename = image_name
 
-                count_id = check_post_id(id)
+                count_id = id
                 filename, file_ext = os.path.splitext(filename)
 
                 file_date = str(datetime.today().strftime("%Y%m%d"))
-                upload = filename + "_" + file_date + "_" + str(count_id) + file_ext
+                upload = str(count_id) + "_" + filename + "_" + file_date + file_ext
 
 
             conn = connectsql()
@@ -242,10 +242,15 @@ def check_post_id(count_id):
     query = "SELECT id FROM board ORDER BY id DESC limit 1"
     cursor.execute(query)
     count_id = cursor.fetchall()
+    try:
+        count_id = count_id[0][0]
+        count_id = count_id + 1
+    except:
+        count_id = 1
+
     conn.commit()
     cursor.close()
     conn.close()
-    count_id = count_id[0][0]
     return count_id
 
 
@@ -268,8 +273,49 @@ def upload_file(count_id=None):
             filename, file_ext = os.path.splitext(filename)
 
             file_date = str(datetime.today().strftime("%Y%m%d"))
-            filename = filename + "_" + file_date + "_" + str(count_id) + file_ext
+            filename = str(count_id) + "_" + filename + "_" + file_date + file_ext
 
+
+            # TODO : app.config['UPLOAD_FOLDER']
+            file.save(os.path.join(app.UPLOAD_DIR, filename))
+
+            url = request.url
+            ip = get_client_ip(request)
+            wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+            # LOG
+            res = "TIME : {0}, IP : {1}, filename : {2}, URL : {3}".format(wdate, ip, filename,
+                                                                                         url)
+            detail_log(res)
+
+            return redirect(url_for('main.uploaded_image',
+                                    filename=filename))
+        else:
+            return render_template('imageError.html')
+    return render_template('uploadFile.html')
+
+
+#edit uplaodImage시 id 번호 문제 해결
+@bp.route('/imageUpload_edit/<id>', methods=['GET', 'POST'])
+def upload_file_edit(id):
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            # filename = secure_filename(file.filename)
+            filename = file.filename
+            print("------ id : {}".format(id))
+
+            count_id = id
+            filename, file_ext = os.path.splitext(filename)
+
+            file_date = str(datetime.today().strftime("%Y%m%d"))
+            filename = str(count_id) + "_" + filename + "_" + file_date + file_ext
+            print("------ filename : {}".format(filename))
 
             # TODO : app.config['UPLOAD_FOLDER']
             file.save(os.path.join(app.UPLOAD_DIR, filename))
@@ -314,10 +360,11 @@ def write(count_id=None):
                 filename = image_name
 
                 count_id = check_post_id(count_id)
+
                 filename, file_ext = os.path.splitext(filename)
 
                 file_date = str(datetime.today().strftime("%Y%m%d"))
-                upload = filename + "_" + file_date + "_" + str(count_id) + file_ext
+                upload = str(count_id) + "_" + filename + "_" + file_date + file_ext
 
             conn = connectsql()
             cursor = conn.cursor()

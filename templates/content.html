@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/html">
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1, maxinum-scale=1, user-scalable=no">
@@ -10,6 +10,10 @@
 		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js"></script>
 		<title>post content page</title>
 		<style>
+			img.resize {
+			  max-width:50%;
+			  max-height:50%;
+			}
 		</style>
 
 	</head>
@@ -34,7 +38,13 @@
 							<div class="card-body">
 								Image
 								<p></p>
-									<img src={{url_for('main.uploaded_image',filename=img_name)}} onError="this.src='http://127.0.0.1:9000/display/error_img.jpeg';" width="100px" height="100px">
+									<img src={{url_for('main.uploaded_image',filename=img_name)}}
+										 class="resize"
+										 onError="this.src='http://127.0.0.1:9000/display/error_img.jpeg';"
+										 width="100px"
+										 height="100px"
+										 onclick="MM_openBrWindow('http://127.0.0.1:9000/display/{{img_name}}','{{img_name}}')"
+									/>
 							</div>
 						{% endif %}
 
@@ -49,4 +59,22 @@
 			</div>
 		</div>	
 	</body>
+
+	<script type="text/JavaScript">
+	function MM_openBrWindow(theURL,winName) {
+		var _width = '800';
+    	var _height = '500';
+
+		// 팝업을 가운데 위치시키기 위해 아래와 같이 값 구하기
+		var _left = Math.ceil(( window.screen.width - _width )/2);
+		var _top = Math.ceil(( window.screen.width - _height )/2);
+		console.log(_top)
+		_top =_top + 30
+		console.log(_top)
+
+		window.open(theURL, winName, 'width='+ _width +', height='+ _height +', left=' + _left + ', top='+ _top );
+
+		//window.open(theURL,winName,features);
+	}
+	</script>
 </html>

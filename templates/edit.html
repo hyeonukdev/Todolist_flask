@@ -66,7 +66,7 @@
                     <div class="form-group">
                         <label class="col-md-12" for="txtPost">Upload</label>
                         <div class="col-md-12">
-                            <form id="FILE_FORM" method="POST" action="/imageUpload">
+                            <form id="FILE_FORM" method="POST" action="/imageUpload_edit/{{data_['id']}}">
                                 <input style="height : 40px;" type="file" id="file" name="file" accept="image/png, image/jpeg" onchange="add_Upload_button()">
                                 <a class="ui-shadow ui-btn ui-corner-all btn blue" id="upload_button" href="javascript:uploadFile();" style="display:none">이미지 올리기</a>
                             </form>기존 파일 : {{data_['upload']}}
@@ -100,20 +100,23 @@
 
         check_file = $("#file")[0].files[0].name;
 
-        console.log(check_file);
+        var url = $(location).attr('href');
+        var str = String(url)
+        var id = str.split('/');
+        id = id[5]
 
         if (String(check_file) == 'undefined')
             alert('파일을 선택해주세요');
         else
             $.ajax({
-                url: '/imageUpload',
+                url: '/imageUpload_edit/'+id,
                 enctype: 'multipart/form-data',
                 processData: false,
                 contentType: false,
                 data: formData,
                 type: "POST",
                 success: function(result){
-                    alert("업로드 성공!!");
+                    alert(check_file +" 업로드 성공!!");
                 }
         });
     }
