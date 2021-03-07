@@ -136,8 +136,15 @@ def edit(id):
 
             conn = connectsql()
             cursor = conn.cursor()
-            query = "UPDATE board SET title = %s, content = %s, udate = %s, upload = %s WHERE id = %s"
-            value = (edittitle, editcontent, udate, upload, id)
+
+
+            if image_name :
+                query = "UPDATE board SET title = %s, content = %s, udate = %s, upload = %s WHERE id = %s"
+                value = (edittitle, editcontent, udate, upload, id)
+            else:
+                query = "UPDATE board SET title = %s, content = %s, udate = %s WHERE id = %s"
+                value = (edittitle, editcontent, udate, id)
+
             cursor.execute(query, value)
             conn.commit()
             cursor.close()
