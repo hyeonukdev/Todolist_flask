@@ -7,7 +7,7 @@ from datetime import datetime
 import app
 
 
-from logs.detail import login_log, get_client_ip, detail_log
+from logs.detail import login_log, get_client_ip, detail_log, error_log
 
 
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
@@ -15,10 +15,17 @@ ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
 bp = Blueprint('main', __name__, url_prefix='/')
 
 
-
 def connectsql():
-    conn = pymysql.connect(host='localhost', user='root', passwd='0000', db='todolist', charset='utf8')
-    return conn
+    try:
+        conn = pymysql.connect(host='localhost', user='root', passwd='0000', db='todolist', charset='utf8')
+        return conn
+    except pymysql.DatabaseError as e:
+        code, msg = e.args
+        print("connectionError : {}".format(e))
+        time = datetime.now()
+        res = "TIME : {0}, CODE : {1}, MSG : {2}".format(time, code, e)
+        error_log(res)
+        return render_template('dberror.html')
 
 
 # ----------
@@ -29,8 +36,7 @@ def index():
 
         return render_template('index.html', logininfo=username)
     else:
-        username = None
-        return render_template('index.html', logininfo=username)
+        return render_template('Error.html')
 
 
 @bp.route('/post', methods=['GET'])
@@ -39,6 +45,7 @@ def post():
         username = session['username']
     else:
         username = None
+        return render_template('Error.html')
 
     conn = connectsql()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
@@ -85,6 +92,14 @@ def content(id):
         conn.commit()
         cursor.close()
         conn.close()
+
+        print("content : {}".format(content))
+        author = content[0]['author']
+        print("author : {}".format(author))
+
+        # 본인 게시글만 보기 error handler
+        if username != author :
+            return render_template('NotmatchingUser.html')
 
         # 이미지 정보
         conn = connectsql()

@@ -41,7 +41,7 @@ dictConfig({
     },
     'handlers': {
         'file': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': 'logs/error.log',
             'maxBytes': 1024 * 1024 * 5,  # 5 MB
@@ -50,7 +50,7 @@ dictConfig({
         },
     },
     'root': {
-        'level': 'DEBUG',
+        'level': 'INFO',
         'handlers': ['file']
     }
 })
