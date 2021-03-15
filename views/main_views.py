@@ -49,9 +49,14 @@ def post():
 
     conn = connectsql()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
-    query = "SELECT id, title, content, author, wdate, view FROM board WHERE author= %s ORDER BY id DESC"
-    value = username
-    cursor.execute(query, value)
+
+    if username == 'master':
+        query = "SELECT id, title, content, author, wdate, udate, view FROM board"
+        cursor.execute(query)
+    else:
+        query = "SELECT id, title, content, author, wdate, view FROM board WHERE author= %s ORDER BY id DESC"
+        value = username
+        cursor.execute(query, value)
     post_list = cursor.fetchall()
 
     cursor.close()
@@ -85,9 +90,12 @@ def content(id):
         # post 정보
         conn = connectsql()
         cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+
         query = "SELECT id, title, content, author, wdate, udate, view FROM board WHERE id = %s"
         value = id
         cursor.execute(query, value)
+
         content = cursor.fetchall()
         conn.commit()
         cursor.close()
@@ -97,8 +105,9 @@ def content(id):
         author = content[0]['author']
         print("author : {}".format(author))
 
-        # 본인 게시글만 보기 error handler
-        if username != author :
+        if username == 'master':
+            pass
+        elif username != author :
             return render_template('NotmatchingUser.html')
 
         # 이미지 정보
