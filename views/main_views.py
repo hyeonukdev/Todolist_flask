@@ -7,7 +7,7 @@ from datetime import datetime
 import app
 
 
-from logs.detail import login_log, get_client_ip, detail_log
+from logs.detail import login_log, get_client_ip, detail_log, error_log
 
 
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
@@ -15,10 +15,17 @@ ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
 bp = Blueprint('main', __name__, url_prefix='/')
 
 
-
 def connectsql():
-    conn = pymysql.connect(host='localhost', user='root', passwd='0000', db='todolist', charset='utf8')
-    return conn
+    try:
+        conn = pymysql.connect(host='localhost', user='root', passwd='0000', db='todolist', charset='utf8')
+        return conn
+    except pymysql.DatabaseError as e:
+        code, msg = e.args
+        print("connectionError : {}".format(e))
+        time = datetime.now()
+        res = "TIME : {0}, CODE : {1}, MSG : {2}".format(time, code, e)
+        error_log(res)
+        return render_template('dberror.html')
 
 
 # ----------
@@ -29,8 +36,7 @@ def index():
 
         return render_template('index.html', logininfo=username)
     else:
-        username = None
-        return render_template('index.html', logininfo=username)
+        return render_template('Error.html')
 
 
 @bp.route('/post', methods=['GET'])
@@ -39,12 +45,18 @@ def post():
         username = session['username']
     else:
         username = None
+        return render_template('Error.html')
 
     conn = connectsql()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
-    query = "SELECT id, title, content, author, wdate, view FROM board WHERE author= %s ORDER BY id DESC"
-    value = username
-    cursor.execute(query, value)
+
+    if username == 'master':
+        query = "SELECT id, title, content, author, wdate, udate, view FROM board"
+        cursor.execute(query)
+    else:
+        query = "SELECT id, title, content, author, wdate, view FROM board WHERE author= %s ORDER BY id DESC"
+        value = username
+        cursor.execute(query, value)
     post_list = cursor.fetchall()
 
     cursor.close()
@@ -78,13 +90,25 @@ def content(id):
         # post 정보
         conn = connectsql()
         cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+
         query = "SELECT id, title, content, author, wdate, udate, view FROM board WHERE id = %s"
         value = id
         cursor.execute(query, value)
+
         content = cursor.fetchall()
         conn.commit()
         cursor.close()
         conn.close()
+
+        print("content : {}".format(content))
+        author = content[0]['author']
+        print("author : {}".format(author))
+
+        if username == 'master':
+            pass
+        elif username != author :
+            return render_template('NotmatchingUser.html')
 
         # 이미지 정보
         conn = connectsql()
@@ -136,8 +160,15 @@ def edit(id):
 
             conn = connectsql()
             cursor = conn.cursor()
-            query = "UPDATE board SET title = %s, content = %s, udate = %s, upload = %s WHERE id = %s"
-            value = (edittitle, editcontent, udate, upload, id)
+
+
+            if image_name :
+                query = "UPDATE board SET title = %s, content = %s, udate = %s, upload = %s WHERE id = %s"
+                value = (edittitle, editcontent, udate, upload, id)
+            else:
+                query = "UPDATE board SET title = %s, content = %s, udate = %s WHERE id = %s"
+                value = (edittitle, editcontent, udate, id)
+
             cursor.execute(query, value)
             conn.commit()
             cursor.close()
