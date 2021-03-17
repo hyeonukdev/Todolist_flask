@@ -6,6 +6,7 @@
     3. 게시글 삭제
 - 회원
     1. 회원 가입
+       - bvrypt hash regist
     2. 회원 수정
     3. 회원 탈퇴
 
@@ -24,6 +25,9 @@
     2. pw
     3. username
     4. Recent login record
+    5. master auth
+        - username이 master이면 전체 post view
+        - 단, 수정, 삭제는 불가
     
 ### Restrictions
 - Flask blueprint method를 사용해서 endpoint 구분하기
