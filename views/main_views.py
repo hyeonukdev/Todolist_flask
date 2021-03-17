@@ -224,7 +224,7 @@ def delete(id):
         res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, content, url)
         detail_log(res)
 
-        if username in data:
+        if username in data or username == 'master':
             return render_template('delete.html', id=id)
         else:
             return render_template('editError.html')
@@ -496,47 +496,50 @@ def login():
         hashed_pw = row.encode('utf-8')
         user_pw = user_pw.encode('utf-8')
 
-        if bcrypt.checkpw(user_pw, hashed_pw):
-            conn = connectsql()
-            cursor = conn.cursor()
-            query = "SELECT * FROM user WHERE user_id = %s"
-            value = (user_id)
-            cursor.execute(query, value)
-            data = cursor.fetchall()
-
-            recent_login = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
-
-            query = "UPDATE user SET recent_login = %s WHERE user_id = %s"
-            value = (recent_login, user_id)
-            cursor.execute(query, value)
-            conn.commit()
-            cursor.close()
-            conn.close()
-
-            if data:
-                session['username'] = request.form['id']
-                session['password'] = request.form['pw']
-
+        try:
+            if bcrypt.checkpw(user_pw, hashed_pw):
                 conn = connectsql()
                 cursor = conn.cursor()
-                query = "SELECT user_name FROM user WHERE user_id = %s"
-                value = user_id
+                query = "SELECT * FROM user WHERE user_id = %s"
+                value = (user_id)
                 cursor.execute(query, value)
                 data = cursor.fetchall()
+
+                recent_login = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+
+                query = "UPDATE user SET recent_login = %s WHERE user_id = %s"
+                value = (recent_login, user_id)
+                cursor.execute(query, value)
                 conn.commit()
                 cursor.close()
                 conn.close()
-                username = data[0][0]
-                print("username : {}".format(username))
 
-                ip = get_client_ip(request)
-                url = request.url
+                if data:
+                    session['username'] = request.form['id']
+                    session['password'] = request.form['pw']
 
-                # LOG
-                res = "TIME : {0}, IP : {1}, USER_ID : {2}, URL : {3}".format(recent_login, ip, user_id, url)
-                login_log(res)
+                    conn = connectsql()
+                    cursor = conn.cursor()
+                    query = "SELECT user_name FROM user WHERE user_id = %s"
+                    value = user_id
+                    cursor.execute(query, value)
+                    data = cursor.fetchall()
+                    conn.commit()
+                    cursor.close()
+                    conn.close()
+                    username = data[0][0]
+                    print("username : {}".format(username))
 
-            return render_template('index.html', username=username)
+                    ip = get_client_ip(request)
+                    url = request.url
+
+                    # LOG
+                    res = "TIME : {0}, IP : {1}, USER_ID : {2}, URL : {3}".format(recent_login, ip, user_id, url)
+                    login_log(res)
+
+                return render_template('index.html', username=username)
+        except Exception as e:
+            print(e)
         else:
             return render_template('loginError.html')
     else:
