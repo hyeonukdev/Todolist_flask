@@ -48,9 +48,11 @@ def create_tables():
     #         ADD recent_login VARCHAR(20);
     # """
 
+
     conn = connectsql()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
-    query = "ALTER TABLE board convert to charset utf8;"
+    query = "ALTER TABLE user MODIFY user_pw varchar(100);"
+    # query = "ALTER TABLE board convert to charset utf8;"
     # query = "ALTER  board MODIFY upload varchar(50);"
     # query = "ALTER TABLE board MODIFY upload varchar(50);"
     cursor.execute(query)
