@@ -5,27 +5,16 @@ from flask import Blueprint
 import pymysql
 from datetime import datetime
 import app
-
+import bcrypt
+from util.password import password_check
+from util.connetsql import connectsql
+from util.check_ip import ip_check
 
 from logs.detail import login_log, get_client_ip, detail_log, error_log
-
 
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
 
 bp = Blueprint('main', __name__, url_prefix='/')
-
-
-def connectsql():
-    try:
-        conn = pymysql.connect(host='localhost', user='root', passwd='0000', db='todolist', charset='utf8')
-        return conn
-    except pymysql.DatabaseError as e:
-        code, msg = e.args
-        print("connectionError : {}".format(e))
-        time = datetime.now()
-        res = "TIME : {0}, CODE : {1}, MSG : {2}".format(time, code, e)
-        error_log(res)
-        return render_template('dberror.html')
 
 
 # ----------
@@ -64,13 +53,18 @@ def post():
 
     url = request.url
     ip = get_client_ip(request)
-    wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
-    content = "post Page"
-    # LOG
-    res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, content, url)
-    detail_log(res)
+    try:
+        ip_check(ip)
+    except Exception as e:
+        print(e)
+    else:
+        wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+        content = "post Page"
+        # LOG
+        res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, content, url)
+        detail_log(res)
 
-    return render_template('post.html', postlist=post_list, logininfo=username)
+        return render_template('post.html', postlist=post_list, logininfo=username)
 
 
 @bp.route('/post/content/<id>', methods=['GET'])
@@ -91,7 +85,6 @@ def content(id):
         conn = connectsql()
         cursor = conn.cursor(pymysql.cursors.DictCursor)
 
-
         query = "SELECT id, title, content, author, wdate, udate, view FROM board WHERE id = %s"
         value = id
         cursor.execute(query, value)
@@ -101,13 +94,13 @@ def content(id):
         cursor.close()
         conn.close()
 
-        print("content : {}".format(content))
+        # print("content : {}".format(content))
         author = content[0]['author']
-        print("author : {}".format(author))
+        # print("author : {}".format(author))
 
         if username == 'master':
             pass
-        elif username != author :
+        elif username != author:
             return render_template('NotmatchingUser.html')
 
         # 이미지 정보
@@ -128,7 +121,8 @@ def content(id):
         wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
 
         # LOG
-        res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}, IMG : {5}".format(wdate, ip, username, content, url, img_name)
+        res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}, IMG : {5}".format(wdate, ip, username,
+                                                                                                content, url, img_name)
         detail_log(res)
 
         return render_template('content.html', data=content, username=username, img_name=img_name)
@@ -157,12 +151,10 @@ def edit(id):
                 file_date = str(datetime.today().strftime("%Y%m%d"))
                 upload = str(count_id) + "_" + filename + "_" + file_date + file_ext
 
-
             conn = connectsql()
             cursor = conn.cursor()
 
-
-            if image_name :
+            if image_name:
                 query = "UPDATE board SET title = %s, content = %s, udate = %s, upload = %s WHERE id = %s"
                 value = (edittitle, editcontent, udate, upload, id)
             else:
@@ -306,7 +298,6 @@ def upload_file(count_id=None):
             file_date = str(datetime.today().strftime("%Y%m%d"))
             filename = str(count_id) + "_" + filename + "_" + file_date + file_ext
 
-
             # TODO : app.config['UPLOAD_FOLDER']
             file.save(os.path.join(app.UPLOAD_DIR, filename))
 
@@ -315,7 +306,7 @@ def upload_file(count_id=None):
             wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
             # LOG
             res = "TIME : {0}, IP : {1}, filename : {2}, URL : {3}".format(wdate, ip, filename,
-                                                                                         url)
+                                                                           url)
             detail_log(res)
 
             return redirect(url_for('main.uploaded_image',
@@ -325,7 +316,7 @@ def upload_file(count_id=None):
     return render_template('uploadFile.html')
 
 
-#edit uplaodImage시 id 번호 문제 해결
+# edit uplaodImage시 id 번호 문제 해결
 @bp.route('/imageUpload_edit/<id>', methods=['GET', 'POST'])
 def upload_file_edit(id):
     if request.method == 'POST':
@@ -339,14 +330,14 @@ def upload_file_edit(id):
         if file and allowed_file(file.filename):
             # filename = secure_filename(file.filename)
             filename = file.filename
-            print("------ id : {}".format(id))
+            # print("------ id : {}".format(id))
 
             count_id = id
             filename, file_ext = os.path.splitext(filename)
 
             file_date = str(datetime.today().strftime("%Y%m%d"))
             filename = str(count_id) + "_" + filename + "_" + file_date + file_ext
-            print("------ filename : {}".format(filename))
+            # print("------ filename : {}".format(filename))
 
             # TODO : app.config['UPLOAD_FOLDER']
             file.save(os.path.join(app.UPLOAD_DIR, filename))
@@ -356,7 +347,7 @@ def upload_file_edit(id):
             wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
             # LOG
             res = "TIME : {0}, IP : {1}, filename : {2}, URL : {3}".format(wdate, ip, filename,
-                                                                                         url)
+                                                                           url)
             detail_log(res)
 
             return redirect(url_for('main.uploaded_image',
@@ -410,8 +401,9 @@ def write(count_id=None):
             url = request.url
             ip = get_client_ip(request)
 
-            #LOG
-            res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, value, url)
+            # LOG
+            res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, value,
+                                                                                         url)
             detail_log(res)
 
             return redirect(url_for('main.post'))
@@ -453,7 +445,7 @@ def logchange():
                 data = cursor.fetchall()
                 username = data[0][0]
 
-            #LOG
+            # LOG
             ip = get_client_ip(request)
             url = request.url
             user_id = '%s' % escape(session['username'])
@@ -490,46 +482,61 @@ def login():
         user_id = request.form['id']
         user_pw = request.form['pw']
 
-        logininfo = request.form['id']
         conn = connectsql()
         cursor = conn.cursor()
-        query = "SELECT * FROM user WHERE user_id = %s AND user_pw = %s"
-        value = (user_id, user_pw)
+        query = "SELECT user_pw FROM user WHERE user_id = %s"
+        value = user_id
         cursor.execute(query, value)
-        data = cursor.fetchall()
-
-        recent_login = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
-
-        query = "UPDATE user SET recent_login = %s WHERE user_id = %s"
-        value = (recent_login, user_id)
-        cursor.execute(query, value)
+        row = cursor.fetchone()
         conn.commit()
         cursor.close()
         conn.close()
 
-        # for row in data:
-        #     data = row[0]
+        row = row[0]
+        hashed_pw = row.encode('utf-8')
+        user_pw = user_pw.encode('utf-8')
 
-        if data:
-            session['username'] = request.form['id']
-            session['password'] = request.form['pw']
-
+        if bcrypt.checkpw(user_pw, hashed_pw):
             conn = connectsql()
             cursor = conn.cursor()
-            query = "SELECT user_name FROM user WHERE user_id = %s"
+            query = "SELECT * FROM user WHERE user_id = %s"
             value = (user_id)
             cursor.execute(query, value)
             data = cursor.fetchall()
-            username = data[0][0]
 
-            ip = get_client_ip(request)
-            url = request.url
+            recent_login = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
 
-            #LOG
-            res="TIME : {0}, IP : {1}, USER_ID : {2}, URL : {3}".format(recent_login, ip, user_id, url)
-            login_log(res)
+            query = "UPDATE user SET recent_login = %s WHERE user_id = %s"
+            value = (recent_login, user_id)
+            cursor.execute(query, value)
+            conn.commit()
+            cursor.close()
+            conn.close()
 
-            return render_template('index.html', logininfo=logininfo, username=username)
+            if data:
+                session['username'] = request.form['id']
+                session['password'] = request.form['pw']
+
+                conn = connectsql()
+                cursor = conn.cursor()
+                query = "SELECT user_name FROM user WHERE user_id = %s"
+                value = user_id
+                cursor.execute(query, value)
+                data = cursor.fetchall()
+                conn.commit()
+                cursor.close()
+                conn.close()
+                username = data[0][0]
+                print("username : {}".format(username))
+
+                ip = get_client_ip(request)
+                url = request.url
+
+                # LOG
+                res = "TIME : {0}, IP : {1}, USER_ID : {2}, URL : {3}".format(recent_login, ip, user_id, url)
+                login_log(res)
+
+            return render_template('index.html', username=username)
         else:
             return render_template('loginError.html')
     else:
@@ -543,34 +550,45 @@ def regist():
         user_pw = request.form['pw']
         user_name = request.form['name']
 
-        conn = connectsql()
-        cursor = conn.cursor()
-        query = "SELECT * FROM user WHERE user_id = %s"
-        value = user_id
-        cursor.execute(query, value)
-        data = (cursor.fetchall())
-        # import pdb; pdb.set_trace()
-        if data:
-            return render_template('registError.html')
-        else:
-            query = "INSERT INTO user (user_id, user_name, user_pw) values (%s, %s, %s)"
-            value = (user_id, user_name, user_pw)
+        pwd_check = password_check(user_pw)
+
+        if pwd_check:
+            # PASSWORD HASH
+            hashed_pw = bcrypt.hashpw(user_pw.encode('UTF-8'), bcrypt.gensalt()).decode('utf-8')
+            # print(hashed_pw)
+
+            # MYSQL
+            conn = connectsql()
+            cursor = conn.cursor()
+            query = "SELECT * FROM user WHERE user_id = %s"
+            value = user_id
             cursor.execute(query, value)
-            data = cursor.fetchall()
-            conn.commit()
-            cursor.close()
-            conn.close()
+            data = (cursor.fetchall())
+            # import pdb; pdb.set_trace()
+            if data:
+                return render_template('registError.html')
+            else:
+                query = "INSERT INTO user (user_id, user_name, user_pw) values (%s, %s, %s)"
+                value = (user_id, user_name, hashed_pw)
+                cursor.execute(query, value)
+                data = cursor.fetchall()
+                conn.commit()
+                cursor.close()
+                conn.close()
 
-            wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
-            ip = get_client_ip(request)
-            url = request.url
-            content = "REGISTER"
+                wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+                ip = get_client_ip(request)
+                url = request.url
+                content = "REGISTER"
 
-            # LOG
-            res = "TIME : {0}, IP : {1}, USER_ID : {2}, CONTENT : {3} URL : {4}".format(wdate, ip, user_id, content,url)
-            login_log(res)
+                # LOG
+                res = "TIME : {0}, IP : {1}, USER_ID : {2}, CONTENT : {3} URL : {4}".format(wdate, ip, user_id, content,
+                                                                                            url)
+                login_log(res)
 
-            return render_template('registSuccess.html')
+                return render_template('registSuccess.html')
+        else:
+            return render_template('registError_pwd.html')
     else:
         return render_template('regist.html')
 
@@ -603,5 +621,4 @@ def deleteUser():
 @bp.route("/xss", methods=['GET'])
 def xss():
     xss_stirng = "<script>alert('flask reflected xss run')</script>"
-    return render_template('xss.html', name = xss_stirng)
-
+    return render_template('xss.html', name=xss_stirng)
