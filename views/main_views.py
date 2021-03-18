@@ -1,6 +1,5 @@
 import os
 from flask import Flask, flash, render_template, session, url_for, request, redirect, send_from_directory, escape
-from werkzeug.utils import secure_filename
 from flask import Blueprint
 import pymysql
 from datetime import datetime
@@ -47,6 +46,7 @@ def post():
         value = username
         cursor.execute(query, value)
     post_list = cursor.fetchall()
+    print("post_list : {}".format(post_list))
 
     cursor.close()
     conn.close()
@@ -625,3 +625,66 @@ def deleteUser():
 def xss():
     xss_stirng = "<script>alert('flask reflected xss run')</script>"
     return render_template('xss.html', name=xss_stirng)
+
+#---
+@bp.route('/admin')
+def show_user():
+    if 'username' in session:
+        username = session['username']
+    try:
+        if username == 'master':
+            conn = connectsql()
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            query = "SELECT id, user_id, user_name, recent_login FROM user"
+            cursor.execute(query)
+            user_data = cursor.fetchall()
+            conn.commit()
+            cursor.close()
+            conn.close()
+            # print("user_data : {}".format(user_data))
+
+            if user_data:
+                return render_template('showUser.html', user_data=user_data)
+    except Exception as e:
+        print("Is Not Master : {}".format(e))
+
+
+@bp.route('/admin/delete/<id>')
+def delete_user(id):
+    try:
+        conn = connectsql()
+        cursor = conn.cursor()
+        query = "SELECT user_id FROM user WHERE id = %s"
+        value = id
+        cursor.execute(query, value)
+        user_data = cursor.fetchall()
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        print("user_data : {}".format(user_data))
+
+        if user_data:
+            return render_template('delete_user.html', id=id)
+    except Exception as e:
+        print("Is Not Master : {}".format(e))
+    else:
+        return render_template('Error.html')
+
+
+@bp.route('/admin/delete/success/<id>')
+def delete_user_success(id):
+    try:
+        conn = connectsql()
+        cursor = conn.cursor()
+        query = "DELETE FROM user WHERE id = %s"
+        value = id
+        cursor.execute(query, value)
+        cursor.fetchall()
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return redirect(url_for('main.show_user'))
+    except Exception as e:
+        print("Is Not Master : {}".format(e))
