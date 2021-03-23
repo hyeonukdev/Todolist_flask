@@ -635,7 +635,7 @@ def show_user():
         if username == 'master':
             conn = connectsql()
             cursor = conn.cursor(pymysql.cursors.DictCursor)
-            query = "SELECT id, user_id, user_name, recent_login FROM user"
+            query = "SELECT id, user_id, user_name, recent_login, authority FROM user"
             cursor.execute(query)
             user_data = cursor.fetchall()
             conn.commit()
@@ -647,6 +647,59 @@ def show_user():
                 return render_template('showUser.html', user_data=user_data)
     except Exception as e:
         print("Is Not Master : {}".format(e))
+
+
+@bp.route('/admin/authority/<id>')
+def change_user_authority(id):
+    if 'username' in session:
+        username = session['username']
+    try:
+        conn = connectsql()
+        cursor = conn.cursor()
+        query = "SELECT authority FROM user WHERE id = %s"
+        value = id
+        cursor.execute(query, value)
+        user_authority_status = cursor.fetchall()
+        conn.commit()
+        cursor.close()
+        conn.close()
+        user_authority_status = user_authority_status[0][0]
+        before_status = user_authority_status
+
+        if user_authority_status in {0, 1}:
+            conn = connectsql()
+            cursor = conn.cursor()
+            if user_authority_status == 1:
+                query = "update user set authority=0 where id = %s;"
+                value = id
+                cursor.execute(query, value)
+                conn.commit()
+                after_status = 0
+            else:
+                query = "update user set authority=1 where id = %s;"
+                value = id
+                cursor.execute(query, value)
+                conn.commit()
+                after_status = 1
+            cursor.close()
+            conn.close()
+
+            wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+            ip = get_client_ip(request)
+            url = request.url
+            content = username + " is changing " + id + "'s authority " + str(before_status) + "to " + str(after_status)
+
+            #LOG
+            # LOG
+            res = "TIME : {0}, IP : {1}, USER_ID : {2}, CONTENT : {3} URL : {4}".format(wdate, ip, username, content,
+                                                                                        url)
+            login_log(res)
+
+        return redirect(url_for('main.show_user'))
+    except Exception as e:
+        print("Authority ERROR : {}".format(e))
+    else:
+        return render_template('Error.html')
 
 
 @bp.route('/admin/delete/<id>')

@@ -35,6 +35,8 @@
 			<th>아이디</th>
 			<th>이름</th>
 			<th>최근로그인</th>
+			<th>권한</th>
+			<th>권한변경</th>
 			<th>삭제</th>
 		</tr>
 		</thead>
@@ -46,6 +48,8 @@
 			<td>{{user['user_id']}}</a></td>
 			<td>{{user['user_name']}}</td>
 			<td>{{user['recent_login']}}</td>
+			<td>{{user['authority']}}</td>
+			<td><a href="/admin/authority/{{user['id']}}" class="card-link">권한변경</a></td>
 			<td><a href="/admin/delete/{{user['id']}}" class="card-link">삭제하기</a></td>
 		</tr>
 		{% endfor %}
