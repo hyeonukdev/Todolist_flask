@@ -35,10 +35,18 @@ def post():
         username = None
         return render_template('Error.html')
 
+    # print("username in post : {}".format(username))
     conn = connectsql()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
+    query = "SELECT authority FROM user where user_id= %s"
+    value = username
+    cursor.execute(query, value)
+    authority_status = cursor.fetchall()
+    # print("authority_status : {}".format(authority_status))
+    authority_status = authority_status[0]['authority']
+    # print("authority_status : {}".format(authority_status))
 
-    if username == 'master':
+    if authority_status == 1:
         query = "SELECT id, title, content, author, wdate, udate, view FROM board"
         cursor.execute(query)
     else:
@@ -46,7 +54,6 @@ def post():
         value = username
         cursor.execute(query, value)
     post_list = cursor.fetchall()
-    print("post_list : {}".format(post_list))
 
     cursor.close()
     conn.close()
@@ -97,8 +104,27 @@ def content(id):
         # print("content : {}".format(content))
         author = content[0]['author']
         # print("author : {}".format(author))
+        # print("username: {}".format(username))
 
-        if username == 'master':
+        # 권한 정보
+        conn = connectsql()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+        # print("username : {}".format(username))
+        query = "SELECT authority FROM user WHERE user_id = %s"
+        value = username
+        cursor.execute(query, value)
+
+        authority = cursor.fetchall()
+        conn.commit()
+        cursor.close()
+        conn.close()
+        authority = authority[0]['authority']
+
+        # print("authority : {}".format(authority))
+
+
+        if authority == 1:
             pass
         elif username != author:
             return render_template('NotmatchingUser.html')
@@ -216,6 +242,19 @@ def delete(id):
         cursor.close()
         conn.close()
 
+        # print("username: {}".format(username))
+
+        conn = connectsql()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        query = "SELECT authority FROM user WHERE user_id = %s"
+        value = username
+        cursor.execute(query, value)
+        authority = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        authority=authority[0]['authority']
+        # print("authority: {}".format(authority))
+
         url = request.url
         ip = get_client_ip(request)
         content = "DELETE id-" + value + " in board"
@@ -224,7 +263,7 @@ def delete(id):
         res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, content, url)
         detail_log(res)
 
-        if username in data or username == 'master':
+        if username in data or authority == 1:
             return render_template('delete.html', id=id)
         else:
             return render_template('editError.html')
@@ -629,6 +668,17 @@ def xss():
 #---
 @bp.route('/admin')
 def show_user():
+    # conn = connectsql()
+    # cursor = conn.cursor()
+    # query = "SELECT authority FROM user WHERE id = %s"
+    # value = id
+    # cursor.execute(query, value)
+    # user_authority_status = cursor.fetchall()
+    # conn.commit()
+    # cursor.close()
+    # conn.close()
+    # user_authority_status = user_authority_status[0][0]
+
     if 'username' in session:
         username = session['username']
     try:
@@ -687,7 +737,7 @@ def change_user_authority(id):
             wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
             ip = get_client_ip(request)
             url = request.url
-            content = username + " is changing " + id + "'s authority " + str(before_status) + "to " + str(after_status)
+            content = username + " is changing " + id + "'s authority " + str(before_status) + " to " + str(after_status)
 
             #LOG
             # LOG
