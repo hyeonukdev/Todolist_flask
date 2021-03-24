@@ -71,7 +71,7 @@ def post():
         res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, content, url)
         detail_log(res)
 
-        return render_template('post.html', postlist=post_list, logininfo=username)
+        return render_template('post.html', postlist=post_list, logininfo=username, authority_status=authority_status)
 
 
 @bp.route('/post/content/<id>', methods=['GET'])
@@ -531,6 +531,12 @@ def login():
         cursor.close()
         conn.close()
 
+        # print("row: {}".format(row))
+        # 해당하는 아이디 값이 없을 경우
+
+        if row == None:
+            return render_template('loginError.html')
+
         row = row[0]
         hashed_pw = row.encode('utf-8')
         user_pw = user_pw.encode('utf-8')
@@ -567,7 +573,7 @@ def login():
                     cursor.close()
                     conn.close()
                     username = data[0][0]
-                    print("username : {}".format(username))
+                    # print("username : {}".format(username))
 
                     ip = get_client_ip(request)
                     url = request.url
@@ -681,8 +687,19 @@ def show_user():
 
     if 'username' in session:
         username = session['username']
+        conn = connectsql()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        query = "SELECT authority FROM user where user_id = %s"
+        value = username
+        cursor.execute(query, value)
+        authority = cursor.fetchall()
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        authority = authority[0]['authority']
     try:
-        if username == 'master':
+        if authority == 1:
             conn = connectsql()
             cursor = conn.cursor(pymysql.cursors.DictCursor)
             query = "SELECT id, user_id, user_name, recent_login, authority FROM user"
@@ -765,7 +782,7 @@ def delete_user(id):
         cursor.close()
         conn.close()
 
-        print("user_data : {}".format(user_data))
+        # print("user_data : {}".format(user_data))
 
         if user_data:
             return render_template('delete_user.html', id=id)
