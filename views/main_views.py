@@ -1,6 +1,5 @@
 import os
 from flask import Flask, flash, render_template, session, url_for, request, redirect, send_from_directory, escape
-from werkzeug.utils import secure_filename
 from flask import Blueprint
 import pymysql
 from datetime import datetime
@@ -36,10 +35,18 @@ def post():
         username = None
         return render_template('Error.html')
 
+    # print("username in post : {}".format(username))
     conn = connectsql()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
+    query = "SELECT authority FROM user where user_id= %s"
+    value = username
+    cursor.execute(query, value)
+    authority_status = cursor.fetchall()
+    # print("authority_status : {}".format(authority_status))
+    authority_status = authority_status[0]['authority']
+    # print("authority_status : {}".format(authority_status))
 
-    if username == 'master':
+    if authority_status == 1:
         query = "SELECT id, title, content, author, wdate, udate, view FROM board"
         cursor.execute(query)
     else:
@@ -97,8 +104,27 @@ def content(id):
         # print("content : {}".format(content))
         author = content[0]['author']
         # print("author : {}".format(author))
+        # print("username: {}".format(username))
 
-        if username == 'master':
+        # 권한 정보
+        conn = connectsql()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+        # print("username : {}".format(username))
+        query = "SELECT authority FROM user WHERE user_id = %s"
+        value = username
+        cursor.execute(query, value)
+
+        authority = cursor.fetchall()
+        conn.commit()
+        cursor.close()
+        conn.close()
+        authority = authority[0]['authority']
+
+        # print("authority : {}".format(authority))
+
+
+        if authority == 1:
             pass
         elif username != author:
             return render_template('NotmatchingUser.html')
@@ -216,6 +242,19 @@ def delete(id):
         cursor.close()
         conn.close()
 
+        # print("username: {}".format(username))
+
+        conn = connectsql()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        query = "SELECT authority FROM user WHERE user_id = %s"
+        value = username
+        cursor.execute(query, value)
+        authority = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        authority=authority[0]['authority']
+        # print("authority: {}".format(authority))
+
         url = request.url
         ip = get_client_ip(request)
         content = "DELETE id-" + value + " in board"
@@ -224,7 +263,7 @@ def delete(id):
         res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, content, url)
         detail_log(res)
 
-        if username in data:
+        if username in data or authority == 1:
             return render_template('delete.html', id=id)
         else:
             return render_template('editError.html')
@@ -496,47 +535,50 @@ def login():
         hashed_pw = row.encode('utf-8')
         user_pw = user_pw.encode('utf-8')
 
-        if bcrypt.checkpw(user_pw, hashed_pw):
-            conn = connectsql()
-            cursor = conn.cursor()
-            query = "SELECT * FROM user WHERE user_id = %s"
-            value = (user_id)
-            cursor.execute(query, value)
-            data = cursor.fetchall()
-
-            recent_login = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
-
-            query = "UPDATE user SET recent_login = %s WHERE user_id = %s"
-            value = (recent_login, user_id)
-            cursor.execute(query, value)
-            conn.commit()
-            cursor.close()
-            conn.close()
-
-            if data:
-                session['username'] = request.form['id']
-                session['password'] = request.form['pw']
-
+        try:
+            if bcrypt.checkpw(user_pw, hashed_pw):
                 conn = connectsql()
                 cursor = conn.cursor()
-                query = "SELECT user_name FROM user WHERE user_id = %s"
-                value = user_id
+                query = "SELECT * FROM user WHERE user_id = %s"
+                value = (user_id)
                 cursor.execute(query, value)
                 data = cursor.fetchall()
+
+                recent_login = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+
+                query = "UPDATE user SET recent_login = %s WHERE user_id = %s"
+                value = (recent_login, user_id)
+                cursor.execute(query, value)
                 conn.commit()
                 cursor.close()
                 conn.close()
-                username = data[0][0]
-                print("username : {}".format(username))
 
-                ip = get_client_ip(request)
-                url = request.url
+                if data:
+                    session['username'] = request.form['id']
+                    session['password'] = request.form['pw']
 
-                # LOG
-                res = "TIME : {0}, IP : {1}, USER_ID : {2}, URL : {3}".format(recent_login, ip, user_id, url)
-                login_log(res)
+                    conn = connectsql()
+                    cursor = conn.cursor()
+                    query = "SELECT user_name FROM user WHERE user_id = %s"
+                    value = user_id
+                    cursor.execute(query, value)
+                    data = cursor.fetchall()
+                    conn.commit()
+                    cursor.close()
+                    conn.close()
+                    username = data[0][0]
+                    print("username : {}".format(username))
 
-            return render_template('index.html', username=username)
+                    ip = get_client_ip(request)
+                    url = request.url
+
+                    # LOG
+                    res = "TIME : {0}, IP : {1}, USER_ID : {2}, URL : {3}".format(recent_login, ip, user_id, url)
+                    login_log(res)
+
+                return render_template('index.html', username=username)
+        except Exception as e:
+            print(e)
         else:
             return render_template('loginError.html')
     else:
@@ -622,3 +664,130 @@ def deleteUser():
 def xss():
     xss_stirng = "<script>alert('flask reflected xss run')</script>"
     return render_template('xss.html', name=xss_stirng)
+
+#---
+@bp.route('/admin')
+def show_user():
+    # conn = connectsql()
+    # cursor = conn.cursor()
+    # query = "SELECT authority FROM user WHERE id = %s"
+    # value = id
+    # cursor.execute(query, value)
+    # user_authority_status = cursor.fetchall()
+    # conn.commit()
+    # cursor.close()
+    # conn.close()
+    # user_authority_status = user_authority_status[0][0]
+
+    if 'username' in session:
+        username = session['username']
+    try:
+        if username == 'master':
+            conn = connectsql()
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            query = "SELECT id, user_id, user_name, recent_login, authority FROM user"
+            cursor.execute(query)
+            user_data = cursor.fetchall()
+            conn.commit()
+            cursor.close()
+            conn.close()
+            # print("user_data : {}".format(user_data))
+
+            if user_data:
+                return render_template('showUser.html', user_data=user_data)
+    except Exception as e:
+        print("Is Not Master : {}".format(e))
+
+
+@bp.route('/admin/authority/<id>')
+def change_user_authority(id):
+    if 'username' in session:
+        username = session['username']
+    try:
+        conn = connectsql()
+        cursor = conn.cursor()
+        query = "SELECT authority FROM user WHERE id = %s"
+        value = id
+        cursor.execute(query, value)
+        user_authority_status = cursor.fetchall()
+        conn.commit()
+        cursor.close()
+        conn.close()
+        user_authority_status = user_authority_status[0][0]
+        before_status = user_authority_status
+
+        if user_authority_status in {0, 1}:
+            conn = connectsql()
+            cursor = conn.cursor()
+            if user_authority_status == 1:
+                query = "update user set authority=0 where id = %s;"
+                value = id
+                cursor.execute(query, value)
+                conn.commit()
+                after_status = 0
+            else:
+                query = "update user set authority=1 where id = %s;"
+                value = id
+                cursor.execute(query, value)
+                conn.commit()
+                after_status = 1
+            cursor.close()
+            conn.close()
+
+            wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+            ip = get_client_ip(request)
+            url = request.url
+            content = username + " is changing " + id + "'s authority " + str(before_status) + " to " + str(after_status)
+
+            #LOG
+            # LOG
+            res = "TIME : {0}, IP : {1}, USER_ID : {2}, CONTENT : {3} URL : {4}".format(wdate, ip, username, content,
+                                                                                        url)
+            login_log(res)
+
+        return redirect(url_for('main.show_user'))
+    except Exception as e:
+        print("Authority ERROR : {}".format(e))
+    else:
+        return render_template('Error.html')
+
+
+@bp.route('/admin/delete/<id>')
+def delete_user(id):
+    try:
+        conn = connectsql()
+        cursor = conn.cursor()
+        query = "SELECT user_id FROM user WHERE id = %s"
+        value = id
+        cursor.execute(query, value)
+        user_data = cursor.fetchall()
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        print("user_data : {}".format(user_data))
+
+        if user_data:
+            return render_template('delete_user.html', id=id)
+    except Exception as e:
+        print("Is Not Master : {}".format(e))
+    else:
+        return render_template('Error.html')
+
+
+@bp.route('/admin/delete/success/<id>')
+def delete_user_success(id):
+    try:
+        conn = connectsql()
+        cursor = conn.cursor()
+        query = "DELETE FROM user WHERE id = %s"
+        value = id
+        cursor.execute(query, value)
+        cursor.fetchall()
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return redirect(url_for('main.show_user'))
+    except Exception as e:
+        print("Is Not Master : {}".format(e))

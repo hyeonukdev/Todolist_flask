@@ -24,6 +24,9 @@
 		</ul>
 		<div>
 		{% if logininfo %}
+			{% if logininfo == 'master' %}
+			<button class="btn btn-dark btn-right" type="button" onclick="location.href='/admin'">관리자페이지</button>
+			{% endif %}
 			<font color="white"> 접속자 id : {{logininfo}}</font>
 			<button class="btn btn-dark btn-right" type="button" onclick="location.href='/logout'">로그아웃</button>
 			<button class="btn btn-dark btn-right" type="button" onclick="location.href='/logchange'">회원정보수정</button>

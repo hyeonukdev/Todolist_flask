@@ -27,7 +27,7 @@
     4. Recent login record
     5. master auth
         - username이 master이면 전체 post view
-        - 단, 수정, 삭제는 불
+        - 단, 수정은 불가 / 삭제는 가능 
     
 ### Restrictions
 - Flask blueprint method를 사용해서 endpoint 구분하기
@@ -57,6 +57,6 @@
 - Server : nginx
 ---
 ## 작성자 : 강현욱
-### 작성일 : 2021.03.02.
-### 문서버전 : v1.0.0
+### 작성일 : 2021.03.17.
+### 문서버전 : v1.1.0
 ---
