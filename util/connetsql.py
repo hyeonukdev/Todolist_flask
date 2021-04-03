@@ -1,7 +1,8 @@
 from datetime import datetime
-from logs.detail import login_log, get_client_ip, detail_log, error_log
-from flask import Flask, flash, render_template, session, url_for, request, redirect, send_from_directory, escape
+from flask import render_template
+from logs.detail import error_log
 import pymysql
+
 
 def connectsql():
     try:
@@ -14,3 +15,25 @@ def connectsql():
         res = "TIME : {0}, CODE : {1}, MSG : {2}".format(time, code, e)
         error_log(res)
         return render_template('dberror.html')
+
+
+def query_excute_with_value(query, value):
+    conn = connectsql()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    cursor.execute(query, value)
+    conn.commit()
+    result = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return result
+
+
+def query_excute_only_query(query):
+    conn = connectsql()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    cursor.execute(query)
+    conn.commit()
+    result = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return result

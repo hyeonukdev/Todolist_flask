@@ -6,7 +6,7 @@ from datetime import datetime
 import app
 import bcrypt
 from util.password import password_check
-from util.connetsql import connectsql
+from util.connetsql import connectsql, query_excute_with_value, query_excute_only_query
 from util.check_ip import ip_check
 
 from logs.detail import login_log, get_client_ip, detail_log, error_log
@@ -36,27 +36,19 @@ def post():
         return render_template('Error.html')
 
     # print("username in post : {}".format(username))
-    conn = connectsql()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
     query = "SELECT authority FROM user where user_id= %s"
     value = username
-    cursor.execute(query, value)
-    authority_status = cursor.fetchall()
-    # print("authority_status : {}".format(authority_status))
+    authority_status = query_excute_with_value(query, value)
     authority_status = authority_status[0]['authority']
     # print("authority_status : {}".format(authority_status))
 
     if authority_status == 1:
         query = "SELECT id, title, content, author, wdate, udate, view FROM board"
-        cursor.execute(query)
+        post_list = query_excute_only_query(query)
     else:
         query = "SELECT id, title, content, author, wdate, view FROM board WHERE author= %s ORDER BY id DESC"
         value = username
-        cursor.execute(query, value)
-    post_list = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
+        post_list = query_excute_with_value(query,value)
 
     url = request.url
     ip = get_client_ip(request)
@@ -79,50 +71,21 @@ def content(id):
     if 'username' in session:
         # 조회수 +=1
         username = session['username']
-        conn = connectsql()
-        cursor = conn.cursor()
         query = "UPDATE board SET view = view + 1 WHERE id = %s"
         value = id
-        cursor.execute(query, value)
-        conn.commit()
-        cursor.close()
-        conn.close()
+        query_excute_with_value(query, value)
 
         # post 정보
-        conn = connectsql()
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
-
         query = "SELECT id, title, content, author, wdate, udate, view FROM board WHERE id = %s"
         value = id
-        cursor.execute(query, value)
-
-        content = cursor.fetchall()
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-        # print("content : {}".format(content))
+        content = query_excute_with_value(query, value)
         author = content[0]['author']
-        # print("author : {}".format(author))
-        # print("username: {}".format(username))
 
         # 권한 정보
-        conn = connectsql()
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
-
-        # print("username : {}".format(username))
         query = "SELECT authority FROM user WHERE user_id = %s"
         value = username
-        cursor.execute(query, value)
-
-        authority = cursor.fetchall()
-        conn.commit()
-        cursor.close()
-        conn.close()
+        authority = query_excute_with_value(query, value)
         authority = authority[0]['authority']
-
-        # print("authority : {}".format(authority))
-
 
         if authority == 1:
             pass
@@ -130,17 +93,10 @@ def content(id):
             return render_template('NotmatchingUser.html')
 
         # 이미지 정보
-        conn = connectsql()
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
         query = "SELECT upload FROM board WHERE id = %s"
         value = id
-        cursor.execute(query, value)
-        img_name = cursor.fetchall()
+        img_name = query_excute_with_value(query, value)
         img_name = img_name[0]['upload']
-
-        conn.commit()
-        cursor.close()
-        conn.close()
 
         url = request.url
         ip = get_client_ip(request)
@@ -177,9 +133,6 @@ def edit(id):
                 file_date = str(datetime.today().strftime("%Y%m%d"))
                 upload = str(count_id) + "_" + filename + "_" + file_date + file_ext
 
-            conn = connectsql()
-            cursor = conn.cursor()
-
             if image_name:
                 query = "UPDATE board SET title = %s, content = %s, udate = %s, upload = %s WHERE id = %s"
                 value = (edittitle, editcontent, udate, upload, id)
@@ -187,14 +140,12 @@ def edit(id):
                 query = "UPDATE board SET title = %s, content = %s, udate = %s WHERE id = %s"
                 value = (edittitle, editcontent, udate, id)
 
-            cursor.execute(query, value)
-            conn.commit()
-            cursor.close()
-            conn.close()
+            query_excute_with_value(query, value)
 
             url = request.url
             ip = get_client_ip(request)
             wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+
             # LOG
             res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, value,
                                                                                          url)
@@ -214,14 +165,9 @@ def edit(id):
             conn.close()
 
             if username in data:
-                conn = connectsql()
-                cursor = conn.cursor(pymysql.cursors.DictCursor)
                 query = "SELECT id, title, content, upload FROM board WHERE id = %s"
                 value = id
-                cursor.execute(query, value)
-                postdata = cursor.fetchall()
-                cursor.close()
-                conn.close()
+                postdata = query_excute_with_value(query, value)
                 return render_template('edit.html', data=postdata, logininfo=username)
             else:
                 return render_template('editError.html')
@@ -242,18 +188,10 @@ def delete(id):
         cursor.close()
         conn.close()
 
-        # print("username: {}".format(username))
-
-        conn = connectsql()
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
         query = "SELECT authority FROM user WHERE user_id = %s"
         value = username
-        cursor.execute(query, value)
-        authority = cursor.fetchall()
-        cursor.close()
-        conn.close()
+        authority = query_excute_with_value(query, value)
         authority=authority[0]['authority']
-        # print("authority: {}".format(authority))
 
         url = request.url
         ip = get_client_ip(request)
@@ -273,14 +211,9 @@ def delete(id):
 
 @bp.route('/post/delete/success/<id>')
 def delete_post_success(id):
-    conn = connectsql()
-    cursor = conn.cursor()
     query = "DELETE FROM board WHERE id = %s"
     value = id
-    cursor.execute(query, value)
-    conn.commit()
-    cursor.close()
-    conn.close()
+    query_excute_with_value(query, value)
 
     url = request.url
     ip = get_client_ip(request)
@@ -299,11 +232,8 @@ def allowed_file(filename):
 
 
 def check_post_id(count_id):
-    conn = connectsql()
-    cursor = conn.cursor()
     query = "SELECT id FROM board ORDER BY id DESC limit 1"
-    cursor.execute(query)
-    count_id = cursor.fetchall()
+    count_id = query_excute_only_query()
     try:
         count_id = count_id[0][0]
         count_id = count_id + 1
@@ -355,7 +285,6 @@ def upload_file(count_id=None):
     return render_template('uploadFile.html')
 
 
-# edit uplaodImage시 id 번호 문제 해결
 @bp.route('/imageUpload_edit/<id>', methods=['GET', 'POST'])
 def upload_file_edit(id):
     if request.method == 'POST':
@@ -427,21 +356,15 @@ def write(count_id=None):
                 file_date = str(datetime.today().strftime("%Y%m%d"))
                 upload = str(count_id) + "_" + filename + "_" + file_date + file_ext
 
-            conn = connectsql()
-            cursor = conn.cursor()
             query = "INSERT INTO board (title, content, author, wdate, view, upload) values (%s, %s, %s, %s, %s, %s)"
             value = (usertitle, usercontent, username, wdate, view, upload)
-            cursor.execute(query, value)
-            data = cursor.fetchall()
-            conn.commit()
-            cursor.close()
-            conn.close()
+            data = query_excute_with_value(query, value)
 
             url = request.url
             ip = get_client_ip(request)
 
             # LOG
-            res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, value,
+            res = "TIME : {0}, IP : {1}, LOGIN_USER : {2}, DATA : {3}, URL : {4}".format(wdate, ip, username, data,
                                                                                          url)
             detail_log(res)
 
@@ -465,23 +388,14 @@ def logchange():
             editname = request.form['user_name']
             editpw = request.form['pw']
 
-            conn = connectsql()
-            cursor = conn.cursor()
             query = "UPDATE user SET user_name = %s, user_pw = %s WHERE user_id = %s"
             value = (editname, editpw, username)
-            cursor.execute(query, value)
-            conn.commit()
-            data = cursor.fetchall()
-            cursor.close()
-            conn.close()
+            data = query_excute_with_value(query, value)
 
             if data:
-                conn = connectsql()
-                cursor = conn.cursor()
                 query = "SELECT user_name FROM user WHERE user_id = %s"
                 value = (username)
-                username = cursor.execute(query, value)
-                data = cursor.fetchall()
+                data = query_excute_with_value(query, value)
                 username = data[0][0]
 
             # LOG
@@ -606,23 +520,16 @@ def regist():
             # print(hashed_pw)
 
             # MYSQL
-            conn = connectsql()
-            cursor = conn.cursor()
             query = "SELECT * FROM user WHERE user_id = %s"
             value = user_id
-            cursor.execute(query, value)
-            data = (cursor.fetchall())
+            data = query_excute_with_value(query, value)
             # import pdb; pdb.set_trace()
             if data:
                 return render_template('registError.html')
             else:
                 query = "INSERT INTO user (user_id, user_name, user_pw) values (%s, %s, %s)"
                 value = (user_id, user_name, hashed_pw)
-                cursor.execute(query, value)
-                data = cursor.fetchall()
-                conn.commit()
-                cursor.close()
-                conn.close()
+                data = query_excute_with_value(query, value)
 
                 wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
                 ip = get_client_ip(request)
@@ -645,14 +552,9 @@ def regist():
 def deleteUser():
     if 'username' in session:
         username = session['username']
-        conn = connectsql()
-        cursor = conn.cursor()
         query = "DELETE FROM user WHERE user_id = %s"
         value = username
-        cursor.execute(query, value)
-        conn.commit()
-        cursor.close()
-        conn.close()
+        query_excute_only_query(query, value)
 
         wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
         ip = get_client_ip(request)
@@ -674,41 +576,17 @@ def xss():
 #---
 @bp.route('/admin')
 def show_user():
-    # conn = connectsql()
-    # cursor = conn.cursor()
-    # query = "SELECT authority FROM user WHERE id = %s"
-    # value = id
-    # cursor.execute(query, value)
-    # user_authority_status = cursor.fetchall()
-    # conn.commit()
-    # cursor.close()
-    # conn.close()
-    # user_authority_status = user_authority_status[0][0]
-
     if 'username' in session:
         username = session['username']
-        conn = connectsql()
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
         query = "SELECT authority FROM user where user_id = %s"
         value = username
-        cursor.execute(query, value)
-        authority = cursor.fetchall()
-        conn.commit()
-        cursor.close()
-        conn.close()
-
+        authority = query_excute_with_value(query, value)
         authority = authority[0]['authority']
+
     try:
         if authority == 1:
-            conn = connectsql()
-            cursor = conn.cursor(pymysql.cursors.DictCursor)
             query = "SELECT id, user_id, user_name, recent_login, authority FROM user"
-            cursor.execute(query)
-            user_data = cursor.fetchall()
-            conn.commit()
-            cursor.close()
-            conn.close()
-            # print("user_data : {}".format(user_data))
+            user_data = query_excute_only_query(query)
 
             if user_data:
                 return render_template('showUser.html', user_data=user_data)
