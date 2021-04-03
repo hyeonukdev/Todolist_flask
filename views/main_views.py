@@ -598,51 +598,64 @@ def show_user():
 def change_user_authority(id):
     if 'username' in session:
         username = session['username']
-    try:
-        conn = connectsql()
-        cursor = conn.cursor()
-        query = "SELECT authority FROM user WHERE id = %s"
-        value = id
-        cursor.execute(query, value)
-        user_authority_status = cursor.fetchall()
-        conn.commit()
-        cursor.close()
-        conn.close()
-        user_authority_status = user_authority_status[0][0]
-        before_status = user_authority_status
-
-        if user_authority_status in {0, 1}:
+        try:
             conn = connectsql()
             cursor = conn.cursor()
-            if user_authority_status == 1:
-                query = "update user set authority=0 where id = %s;"
-                value = id
-                cursor.execute(query, value)
-                conn.commit()
-                after_status = 0
-            else:
-                query = "update user set authority=1 where id = %s;"
-                value = id
-                cursor.execute(query, value)
-                conn.commit()
-                after_status = 1
+            query = "SELECT authority FROM user WHERE id = %s"
+            value = id
+            cursor.execute(query, value)
+            user_authority_status = cursor.fetchall()
+            conn.commit()
             cursor.close()
             conn.close()
+            user_authority_status = user_authority_status[0][0]
+            before_status = user_authority_status
 
-            wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
-            ip = get_client_ip(request)
-            url = request.url
-            content = username + " is changing " + id + "'s authority " + str(before_status) + " to " + str(after_status)
+            conn = connectsql()
+            cursor = conn.cursor()
+            query = "SELECT user_id FROM user WHERE id = %s"
+            value = id
+            cursor.execute(query, value)
+            user_id = cursor.fetchall()
+            conn.commit()
+            cursor.close()
+            conn.close()
+            user_id = user_id[0][0]
 
-            #LOG
-            # LOG
-            res = "TIME : {0}, IP : {1}, USER_ID : {2}, CONTENT : {3} URL : {4}".format(wdate, ip, username, content,
-                                                                                        url)
-            login_log(res)
+            #본인 계정 변경 불가
+            if username == user_id:
+                return render_template('authorityerror.html')
+            else:
+                if user_authority_status in {0, 1}:
+                    conn = connectsql()
+                    cursor = conn.cursor()
+                    if user_authority_status == 1:
+                        query = "update user set authority=0 where id = %s;"
+                        value = id
+                        cursor.execute(query, value)
+                        conn.commit()
+                        after_status = 0
+                    else:
+                        query = "update user set authority=1 where id = %s;"
+                        value = id
+                        cursor.execute(query, value)
+                        conn.commit()
+                        after_status = 1
+                    cursor.close()
+                    conn.close()
 
-        return redirect(url_for('main.show_user'))
-    except Exception as e:
-        print("Authority ERROR : {}".format(e))
+                    wdate = str(datetime.today().strftime("%Y/%m/%d %H:%M:%S"))
+                    ip = get_client_ip(request)
+                    url = request.url
+                    content = username + " is changing " + id + "'s authority " + str(before_status) + " to " + str(after_status)
+
+                    # LOG
+                    res = "TIME : {0}, IP : {1}, USER_ID : {2}, CONTENT : {3} URL : {4}".format(wdate, ip, username, content, url)
+                    login_log(res)
+
+                return redirect(url_for('main.show_user'))
+        except Exception as e:
+            print("Authority ERROR : {}".format(e))
     else:
         return render_template('Error.html')
 
